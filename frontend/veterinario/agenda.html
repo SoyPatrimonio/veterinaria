@@ -1,0 +1,144 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Mi agenda</h1>
+        <p>Confirma, marca como atendida o bloquea horarios para que nadie pueda reservarlos.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-outline" id="btnHorario">
+          <svg class="icon"><use href="#icon-clock"/></svg> Mi horario
+        </button>
+        <button type="button" class="btn btn-primary" id="btnBloquear">
+          <svg class="icon"><use href="#icon-shield"/></svg> Bloquear horario
+        </button>
+      </div>
+    </header>
+
+    <div class="agenda-controles">
+      <div class="selector-vista" id="selectorVista">
+        <button type="button" class="activo" data-vista="dia">Día</button>
+        <button type="button" data-vista="semana">Semana</button>
+        <button type="button" data-vista="mes">Mes</button>
+      </div>
+
+      <button type="button" class="btn btn-outline btn-sm" id="btnAnterior">
+        <svg class="icon"><use href="#icon-izquierda"/></svg>
+      </button>
+      <label class="campo" style="width:170px">
+        <input type="date" id="inputFecha">
+      </label>
+      <button type="button" class="btn btn-outline btn-sm" id="btnSiguiente">
+        <svg class="icon"><use href="#icon-derecha"/></svg>
+      </button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnHoy">Hoy</button>
+
+      <select id="filtroEstado" style="margin-left:auto;padding:9px 12px;border-radius:10px;border:1px solid rgba(34,48,40,.18)">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendientes</option>
+        <option value="confirmada">Confirmadas</option>
+        <option value="atendida">Atendidas</option>
+        <option value="cancelada">Canceladas</option>
+      </select>
+    </div>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2 id="tituloRango">Agenda</h2>
+        <span id="contadorCitas" class="campo-ayuda"></span>
+      </div>
+      <div id="contenidoAgenda"></div>
+    </section>
+
+    <section class="tarjeta" id="tarjetaBloqueos">
+      <div class="tarjeta-cabecera">
+        <h2><svg class="icon"><use href="#icon-shield"/></svg> Horarios bloqueados</h2>
+      </div>
+      <div id="listaBloqueos"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Bloquear horario -->
+<div class="modal-fondo" id="modalBloqueo" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Bloquear un horario</h3>
+    <p class="modal-sub">Nadie podrá agendar citas en ese rango. Las citas ya reservadas no se cancelan solas.</p>
+
+    <p class="mensaje-error" id="errorBloqueo" hidden></p>
+
+    <form id="formBloqueo" novalidate>
+      <label class="campo">
+        <span>Fecha *</span>
+        <input type="date" name="fecha" required>
+      </label>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Desde *</span>
+          <input type="time" name="horaInicio" required value="12:00">
+        </label>
+        <label class="campo">
+          <span>Hasta *</span>
+          <input type="time" name="horaFin" required value="14:00">
+        </label>
+      </div>
+      <label class="campo">
+        <span>Motivo</span>
+        <input type="text" name="motivo" maxlength="160" placeholder="Cirugía programada, capacitación…">
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarBloqueo">Bloquear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Horario semanal -->
+<div class="modal-fondo" id="modalHorario" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Mi horario de atención</h3>
+    <p class="modal-sub">Define en qué franjas puedes recibir pacientes. Fuera de estas horas el sistema no ofrece citas.</p>
+
+    <p class="mensaje-error" id="errorHorario" hidden></p>
+
+    <div class="horario-editor" id="editorHorario"></div>
+
+    <button type="button" class="btn btn-outline btn-sm" id="btnAgregarFranja" style="margin-top:12px">
+      <svg class="icon"><use href="#icon-mas"/></svg> Agregar franja
+    </button>
+
+    <div class="modal-acciones">
+      <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btnGuardarHorario">Guardar horario</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/vet-agenda.js?v=dbcb3001c5"></script>
+</body>
+</html>

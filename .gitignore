@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno con credenciales
+# .env.* cubre el .env.deploy, donde vive el token de Vercel.
+.env
+*.env
+.env.*
+!.env.example
+PEGAR-CLAVES-AQUI.txt
+
+# Archivos subidos por los usuarios
+uploads/mascotas/*
+uploads/documentos/*
+!uploads/**/.gitkeep
+
+# Logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+
+# Vercel
+.vercel/

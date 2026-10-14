@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturación — Administración</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Facturación</h1>
+        <p>Facturas, pagos y devoluciones. Los productos facturados salen del inventario solos.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNuevaFactura">
+        <svg class="icon"><use href="#icon-mas"/></svg> Nueva factura
+      </button>
+    </header>
+
+    <section id="metricas"></section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <label class="campo" style="margin:0;flex:1;max-width:280px">
+          <input type="search" id="inputBusqueda" placeholder="Buscar por número o cliente…" autocomplete="off">
+        </label>
+        <label class="campo" style="margin:0;min-width:160px">
+          <select id="filtroEstado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="parcial">Con abono</option>
+            <option value="pagada">Pagadas</option>
+            <option value="anulada">Anuladas</option>
+          </select>
+        </label>
+        <label class="campo" style="margin:0"><input type="date" id="filtroDesde"></label>
+        <label class="campo" style="margin:0"><input type="date" id="filtroHasta"></label>
+      </div>
+      <div id="listaFacturas"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Nueva factura -->
+<div class="modal-fondo" id="modalFactura" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Nueva factura</h3>
+    <p class="modal-sub">Elige el cliente y arma las líneas. Si la factura sale de una cita, se precarga el servicio.</p>
+
+    <p class="mensaje-error" id="errorFactura" hidden></p>
+
+    <form id="formFactura" novalidate>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Cliente *</span>
+          <select name="clienteId" id="selectCliente" required></select>
+        </label>
+        <label class="campo">
+          <span>Cita que se cobra</span>
+          <select name="citaId" id="selectCitaFactura">
+            <option value="">Sin cita asociada</option>
+          </select>
+        </label>
+      </div>
+
+      <h4 style="font-family:var(--font-body);font-size:.9rem;margin:18px 0 10px">Conceptos</h4>
+      <div class="filas-editables" id="filasFactura"></div>
+
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:9px">
+        <button type="button" class="btn btn-outline btn-sm" data-agregar="servicio">
+          <svg class="icon"><use href="#icon-mas"/></svg> Servicio
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" data-agregar="producto">
+          <svg class="icon"><use href="#icon-mas"/></svg> Producto
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" data-agregar="libre">
+          <svg class="icon"><use href="#icon-mas"/></svg> Concepto libre
+        </button>
+      </div>
+
+      <div class="campos-fila" style="margin-top:16px">
+        <label class="campo">
+          <span>Descuento global</span>
+          <input type="number" name="descuento" min="0" step="500" value="0">
+        </label>
+        <label class="campo">
+          <span>Observaciones</span>
+          <input type="text" name="observaciones" maxlength="255">
+        </label>
+      </div>
+
+      <div class="resumen-cita" id="totalesFactura"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarFactura">Emitir factura</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detalle -->
+<div class="modal-fondo" id="modalDetalle" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <div id="detalleFactura"></div>
+    <div class="modal-acciones" id="accionesFactura"></div>
+  </div>
+</div>
+
+<!-- Pago -->
+<div class="modal-fondo" id="modalPago" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Registrar pago</h3>
+    <p class="modal-sub" id="subtituloPago"></p>
+
+    <p class="mensaje-error" id="errorPago" hidden></p>
+
+    <form id="formPago" novalidate>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Método *</span>
+          <select name="metodo">
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="en_linea">Pago en línea</option>
+          </select>
+        </label>
+        <label class="campo">
+          <span>Valor *</span>
+          <input type="number" name="valor" min="1" step="100" required>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Referencia</span>
+        <input type="text" name="referencia" maxlength="100" placeholder="Caja, número de aprobación…">
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarPago">Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Devolución -->
+<div class="modal-fondo" id="modalDevolucion" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Registrar devolución</h3>
+    <p class="modal-sub">Marca lo que se devuelve. Los productos pueden volver al inventario.</p>
+
+    <p class="mensaje-error" id="errorDevolucion" hidden></p>
+
+    <form id="formDevolucion" novalidate>
+      <label class="campo">
+        <span>Motivo *</span>
+        <input type="text" name="motivo" required maxlength="255" placeholder="Producto en mal estado, servicio no prestado…">
+      </label>
+
+      <div id="lineasDevolucion"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarDevolucion">Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/factura-ui.js?v=dbcb3001c5"></script>
+<script src="../js/admin-facturacion.js?v=dbcb3001c5"></script>
+</body>
+</html>

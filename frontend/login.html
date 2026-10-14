@@ -1,0 +1,168 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciar sesión — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="acceso">
+  <aside class="acceso-lateral">
+    <a class="acceso-marca" href="index.html">
+      <img src="iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico" alt="">
+      Huellitas de Amor
+    </a>
+
+    <div>
+      <h1>El historial de tu mascota, siempre a la mano</h1>
+      <p>Agenda citas, consulta vacunas y revisa la historia clínica desde cualquier dispositivo.</p>
+
+      <ul class="acceso-lista">
+        <li><svg class="icon"><use href="#icon-calendar"/></svg> Agenda en línea con horarios reales de cada veterinario</li>
+        <li><svg class="icon"><use href="#icon-syringe"/></svg> Alertas antes de que venza cada refuerzo de vacuna</li>
+        <li><svg class="icon"><use href="#icon-shield"/></svg> Historia clínica completa y siempre disponible</li>
+      </ul>
+    </div>
+
+    <p class="acceso-pie">Urgencias 24/7 — (310) 789-678</p>
+  </aside>
+
+  <main class="acceso-panel">
+    <div class="acceso-caja">
+      <a href="index.html" class="acceso-volver">
+        <svg class="icon"><use href="#icon-izquierda"/></svg> Volver al inicio
+      </a>
+
+      <h2>Bienvenido de nuevo</h2>
+      <p class="acceso-sub">Ingresa con tu correo y contraseña. El sistema te lleva al panel que corresponde a tu perfil.</p>
+
+      <p class="mensaje-error" id="errorLogin" hidden></p>
+
+      <form id="formLogin" novalidate>
+        <label class="campo">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" autocomplete="email" required placeholder="tu@correo.com">
+        </label>
+
+        <label class="campo">
+          <span>Contraseña</span>
+          <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-bloque" id="btnEntrar">Iniciar sesión</button>
+      </form>
+
+      <p class="acceso-cambio">
+        <a href="#" class="link-btn" id="abrirRecuperar">¿Olvidaste tu contraseña?</a>
+      </p>
+
+      <!--
+        Segundo paso del ingreso. La contraseña ya se comprobó y el servidor
+        devolvió un desafío de cinco minutos; hasta que no llegue el código no
+        hay sesión de ninguna clase.
+
+        El texto lo pone el servidor, que es quien sabe por dónde salió el
+        código: al correo de esa persona o de su aplicación de autenticación.
+        Lo de aquí es solo lo que se ve si la respuesta no trae mensaje.
+      -->
+      <section class="acceso-recuperar" id="bloqueMfa" hidden>
+        <h4>Código de verificación</h4>
+        <p class="acceso-sub" id="textoMfa">
+          Escribe el código de seis cifras que te enviamos a tu correo.
+        </p>
+        <p class="acceso-sub" id="ayudaMfa" hidden>
+          Si perdiste el teléfono, sirve uno de tus códigos de recuperación.
+        </p>
+
+        <p class="mensaje-error" id="errorMfa" hidden></p>
+
+        <form id="formMfa" novalidate>
+          <label class="campo">
+            <span>Código</span>
+            <input type="text" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+                   required placeholder="000000" maxlength="20">
+          </label>
+          <button type="submit" class="btn btn-primary btn-bloque" id="btnMfa">Verificar y entrar</button>
+        </form>
+
+        <button type="button" class="link-btn" id="cancelarMfa">Cancelar</button>
+      </section>
+
+      <!--
+        Cambio obligatorio. Aparece cuando el servidor marca la cuenta con
+        debe_cambiar_password: mientras no se haga, la sesión no sirve para
+        nada más. Va en el login y no en cada panel porque así vale para los
+        tres roles, y admin y veterinario no tienen pantalla de perfil.
+      -->
+      <section class="acceso-recuperar" id="bloqueCambio" hidden>
+        <h4>Cambia tu contraseña para continuar</h4>
+        <p class="acceso-sub" id="motivoCambio">
+          Esta cuenta todavía usa una contraseña asignada. Elige una propia antes de entrar.
+        </p>
+
+        <p class="mensaje-error" id="errorCambio" hidden></p>
+
+        <form id="formCambio" novalidate>
+          <label class="campo">
+            <span>Contraseña actual</span>
+            <input type="password" name="actual" autocomplete="current-password" required placeholder="••••••••">
+          </label>
+          <label class="campo">
+            <span>Contraseña nueva</span>
+            <input type="password" name="nueva" autocomplete="new-password" required placeholder="••••••••">
+          </label>
+          <label class="campo">
+            <span>Repite la contraseña nueva</span>
+            <input type="password" name="nueva2" autocomplete="new-password" required placeholder="••••••••">
+          </label>
+          <button type="submit" class="btn btn-primary btn-bloque" id="btnCambio">Guardar y entrar</button>
+        </form>
+      </section>
+
+      <section class="acceso-recuperar" id="bloqueRecuperar" hidden>
+        <h4>Recuperar el acceso</h4>
+        <p class="acceso-sub">Escribe el correo de tu cuenta y te damos un enlace para crear una contraseña nueva.</p>
+
+        <p class="mensaje-error" id="errorRecuperar" hidden></p>
+        <p class="mensaje-ok" id="avisoRecuperar" hidden></p>
+
+        <form id="formRecuperar" novalidate>
+          <label class="campo">
+            <span>Correo electrónico</span>
+            <input type="email" name="email" autocomplete="email" required placeholder="tu@correo.com">
+          </label>
+          <button type="submit" class="btn btn-outline btn-bloque" id="btnRecuperar">Enviar instrucciones</button>
+        </form>
+
+        <form id="formRestablecer" novalidate hidden>
+          <input type="hidden" name="token">
+          <label class="campo">
+            <span>Contraseña nueva</span>
+            <input type="password" name="nueva" autocomplete="new-password" required placeholder="••••••••">
+          </label>
+          <label class="campo">
+            <span>Repite la contraseña</span>
+            <input type="password" name="nueva2" autocomplete="new-password" required placeholder="••••••••">
+          </label>
+          <button type="submit" class="btn btn-primary btn-bloque" id="btnRestablecer">Guardar contraseña</button>
+        </form>
+
+        <button type="button" class="link-btn" id="cerrarRecuperar">Cancelar</button>
+      </section>
+
+      <p class="acceso-cambio">¿No tienes cuenta? <a href="registro.html" class="link-btn">Crea una gratis</a></p>
+    </div>
+  </main>
+</div>
+
+<script src="js/sprite.js?v=dbcb3001c5"></script>
+<script src="js/api.js?v=dbcb3001c5"></script>
+<script src="js/acceso.js?v=dbcb3001c5"></script>
+</body>
+</html>

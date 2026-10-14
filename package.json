@@ -1,0 +1,48 @@
+{
+  "name": "huellitas-de-amor",
+  "version": "1.0.0",
+  "description": "Sistema de gestión veterinaria Huellitas de Amor — API en Vercel y base de datos en Supabase",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "nodemon backend/src/server.js",
+    "test": "node --test backend/test/*.test.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "db:setup": "node backend/scripts/setup-db.js",
+    "db:schema": "node backend/scripts/setup-db.js --solo-schema",
+    "configurar": "node scripts/configurar.js",
+    "aplicar": "node scripts/aplicar-claves.js",
+    "deploy": "node scripts/deploy.js",
+    "vercel-build": "node -e \"console.log('Sitio estático: no hay nada que compilar.')\"",
+    "auditar": "npm audit --omit=dev --audit-level=high",
+    "auditar:todo": "npm audit",
+    "auditar:versiones": "npm outdated || exit 0",
+    "predeploy": "npm run auditar"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.0",
+    "nodemailer": "^9.0.5",
+    "pdfkit": "^0.19.1",
+    "pg": "^8.13.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "globals": "^17.11.0",
+    "nodemon": "^3.1.7"
+  }
+}

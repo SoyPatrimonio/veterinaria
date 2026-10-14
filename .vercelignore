@@ -1,0 +1,20 @@
+# Lo que no tiene que subir al despliegue.
+
+.env
+*.env
+.env.*
+!.env.example
+PEGAR-CLAVES-AQUI.txt
+
+node_modules
+backend/node_modules
+
+# Fotos subidas en desarrollo: en producción viven en Supabase Storage.
+uploads
+
+# Solo se usan desde tu equipo, no en tiempo de ejecución.
+database
+backend/scripts
+scripts
+backend/test
+eslint.config.js

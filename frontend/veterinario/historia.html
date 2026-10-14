@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historia clínica — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1 id="tituloPaciente">Historia clínica</h1>
+        <p id="subtituloPaciente">Consultas, vacunas y exámenes del paciente.</p>
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <a class="btn btn-outline" href="pacientes.html">
+          <svg class="icon"><use href="#icon-izquierda"/></svg> Pacientes
+        </a>
+        <button type="button" class="btn btn-primary" id="btnNuevaConsulta">
+          <svg class="icon"><use href="#icon-stetho"/></svg> Nueva consulta
+        </button>
+      </div>
+    </header>
+
+    <section class="tarjeta" id="fichaResumen"></section>
+
+    <div class="pestanas" id="pestanas">
+      <button type="button" class="activa" data-pestana="consultas">Consultas</button>
+      <button type="button" data-pestana="vacunas">Vacunas</button>
+      <button type="button" data-pestana="examenes">Exámenes</button>
+      <button type="button" data-pestana="antecedentes">Antecedentes</button>
+    </div>
+
+    <section class="panel-pestana" id="panelConsultas">
+      <div id="listaConsultas"></div>
+    </section>
+
+    <section class="panel-pestana" id="panelVacunas" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h3><svg class="icon"><use href="#icon-syringe"/></svg> Carné de vacunación</h3>
+          <button type="button" class="btn btn-moss btn-sm" id="btnAplicarVacuna">Aplicar vacuna</button>
+        </div>
+        <div id="listaVacunas"></div>
+      </div>
+    </section>
+
+    <section class="panel-pestana" id="panelExamenes" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h3><svg class="icon"><use href="#icon-micro"/></svg> Exámenes</h3>
+          <button type="button" class="btn btn-moss btn-sm" id="btnSolicitarExamen">Solicitar examen</button>
+        </div>
+        <div id="listaExamenes"></div>
+      </div>
+    </section>
+
+    <section class="panel-pestana" id="panelAntecedentes" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-alerta"/></svg> Alergias y condiciones</h3></div>
+        <div id="listaAntecedentes"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-grafica"/></svg> Curva de peso</h3></div>
+        <div id="curvaPeso"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Nueva consulta -->
+<div class="modal-fondo" id="modalConsulta" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Nueva consulta</h3>
+    <p class="modal-sub">Lo que se guarde aquí queda en la historia clínica del paciente.</p>
+
+    <p class="mensaje-error" id="errorConsulta" hidden></p>
+
+    <form id="formConsulta" novalidate>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Tipo *</span>
+          <select name="tipo">
+            <option value="consulta">Consulta</option>
+            <option value="control">Control</option>
+            <option value="urgencia">Urgencia</option>
+            <option value="cirugia">Cirugía</option>
+            <option value="vacunacion">Vacunación</option>
+          </select>
+        </label>
+        <label class="campo">
+          <span>Cita que se atiende</span>
+          <select name="citaId" id="selectCita">
+            <option value="">Sin cita asociada</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Motivo *</span>
+        <input type="text" name="motivo" required maxlength="255" placeholder="Control de vacunación, decaimiento…">
+      </label>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Anamnesis</span>
+          <textarea name="anamnesis" maxlength="4000" placeholder="Qué cuenta el dueño"></textarea>
+        </label>
+        <label class="campo">
+          <span>Síntomas</span>
+          <textarea name="sintomas" maxlength="4000"></textarea>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Examen físico</span>
+        <textarea name="examenFisico" maxlength="4000"></textarea>
+      </label>
+
+      <h4 style="font-family:var(--font-body);font-size:.9rem;margin:18px 0 10px">Signos vitales</h4>
+      <div class="campos-fila-3">
+        <label class="campo">
+          <span>Peso (kg)</span>
+          <input type="number" name="pesoKg" step="0.01" min="0.1" max="500">
+        </label>
+        <label class="campo">
+          <span>Temperatura (°C)</span>
+          <input type="number" name="temperaturaC" step="0.1" min="25" max="45">
+        </label>
+        <label class="campo">
+          <span>Condición corporal (1-9)</span>
+          <input type="number" name="condicionCorporal" min="1" max="9" step="1">
+        </label>
+      </div>
+      <div class="campos-fila-3">
+        <label class="campo">
+          <span>Frec. cardíaca</span>
+          <input type="number" name="frecCardiaca" min="0" max="400">
+        </label>
+        <label class="campo">
+          <span>Frec. respiratoria</span>
+          <input type="number" name="frecRespiratoria" min="0" max="300">
+        </label>
+        <label class="campo">
+          <span>Mucosas</span>
+          <input type="text" name="mucosas" maxlength="30" placeholder="Rosadas, húmedas">
+        </label>
+      </div>
+
+      <h4 style="font-family:var(--font-body);font-size:.9rem;margin:18px 0 10px">Diagnósticos</h4>
+      <div class="filas-editables" id="filasDiagnosticos"></div>
+      <button type="button" class="btn btn-outline btn-sm" id="btnAgregarDiagnostico" style="margin-top:9px">
+        <svg class="icon"><use href="#icon-mas"/></svg> Añadir diagnóstico
+      </button>
+
+      <h4 style="font-family:var(--font-body);font-size:.9rem;margin:18px 0 10px">Tratamiento y recetas</h4>
+      <div class="filas-editables" id="filasTratamientos"></div>
+      <button type="button" class="btn btn-outline btn-sm" id="btnAgregarTratamiento" style="margin-top:9px">
+        <svg class="icon"><use href="#icon-mas"/></svg> Añadir tratamiento
+      </button>
+
+      <label class="campo" style="margin-top:18px">
+        <span>Plan de manejo</span>
+        <textarea name="planManejo" maxlength="4000" placeholder="Indicaciones para la casa, próximo control…"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarConsulta">Guardar consulta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Aplicar vacuna -->
+<div class="modal-fondo" id="modalVacuna" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Aplicar vacuna</h3>
+    <p class="modal-sub">Si la vacuna tiene refuerzo, la próxima fecha se calcula sola.</p>
+
+    <p class="mensaje-error" id="errorVacuna" hidden></p>
+
+    <form id="formVacuna" novalidate>
+      <label class="campo">
+        <span>Vacuna *</span>
+        <select name="vacunaId" id="selectVacuna" required></select>
+      </label>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Lote</span>
+          <select name="loteId" id="selectLote">
+            <option value="">Sin registrar</option>
+          </select>
+        </label>
+        <label class="campo">
+          <span>Fecha de aplicación *</span>
+          <input type="date" name="fechaAplicacion" required>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Próximo refuerzo</span>
+        <input type="date" name="proximaFecha">
+        <small class="campo-ayuda" id="ayudaRefuerzo">Se calcula con el refuerzo del catálogo si lo dejas vacío.</small>
+      </label>
+
+      <label class="campo">
+        <span>Observaciones</span>
+        <textarea name="observaciones" maxlength="1000"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarVacuna">Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Examen: solicitud y resultados -->
+<div class="modal-fondo" id="modalExamen" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloExamen">Solicitar examen</h3>
+    <p class="modal-sub" id="subtituloExamen">Queda como solicitado hasta que se carguen los resultados.</p>
+
+    <p class="mensaje-error" id="errorExamen" hidden></p>
+
+    <form id="formExamen" novalidate>
+      <input type="hidden" name="id">
+
+      <div id="camposSolicitud">
+        <label class="campo">
+          <span>Tipo de examen</span>
+          <select name="tipoExamenId" id="selectTipoExamen">
+            <option value="">Otro (lo describo abajo)</option>
+          </select>
+        </label>
+        <label class="campo">
+          <span>Descripción</span>
+          <input type="text" name="descripcion" maxlength="150" placeholder="Hemograma completo de control">
+        </label>
+      </div>
+
+      <div id="camposResultados" hidden>
+        <label class="campo">
+          <span>Estado</span>
+          <select name="estado">
+            <option value="listo">Listo</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="anulado">Anulado</option>
+          </select>
+        </label>
+
+        <div class="filas-editables" id="filasResultados"></div>
+        <button type="button" class="btn btn-outline btn-sm" id="btnAgregarResultado" style="margin-top:9px">
+          <svg class="icon"><use href="#icon-mas"/></svg> Añadir parámetro
+        </button>
+
+        <label class="campo" style="margin-top:14px">
+          <span>Conclusión</span>
+          <textarea name="conclusion" maxlength="4000"></textarea>
+        </label>
+      </div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarExamen">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detalle de una consulta -->
+<div class="modal-fondo" id="modalDetalle" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <div id="detalleConsulta"></div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/grafica.js?v=dbcb3001c5"></script>
+<script src="../js/historia-ui.js?v=dbcb3001c5"></script>
+<script src="../js/vet-historia.js?v=dbcb3001c5"></script>
+</body>
+</html>

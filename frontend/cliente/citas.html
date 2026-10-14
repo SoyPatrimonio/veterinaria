@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis citas — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Mis citas</h1>
+        <p>Consulta el estado de cada cita y cancela con anticipación si no puedes asistir.</p>
+      </div>
+      <a href="../cliente/agendar.html" class="btn btn-primary">
+        <svg class="icon"><use href="#icon-mas"/></svg> Nueva cita
+      </a>
+    </header>
+
+    <div id="aviso"></div>
+
+    <nav class="pestanas" id="filtros">
+      <button type="button" class="activa" data-filtro="proximas">Próximas</button>
+      <button type="button" data-filtro="historial">Historial</button>
+      <button type="button" data-filtro="todas">Todas</button>
+    </nav>
+
+    <section class="tarjeta">
+      <div id="listaCitas"></div>
+    </section>
+  </main>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/cliente-citas.js?v=dbcb3001c5"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguridad — Administración</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Seguridad</h1>
+        <p>Qué puede hacer cada rol, quién está conectado y qué se ha tocado en el sistema.</p>
+      </div>
+    </header>
+
+    <nav class="pestanas" id="pestanas">
+      <button type="button" class="pestana activa" data-panel="permisos">Roles y permisos</button>
+      <button type="button" class="pestana" data-panel="sesiones">Sesiones abiertas</button>
+      <button type="button" class="pestana" data-panel="accesos">Accesos</button>
+      <button type="button" class="pestana" data-panel="intentos">Intentos de login</button>
+      <button type="button" class="pestana" data-panel="auditoria">Auditoría</button>
+      <button type="button" class="pestana" data-panel="codigo">Código de acceso</button>
+    </nav>
+
+    <section class="tarjeta panel-seccion" id="panelPermisos">
+      <p class="campo-ayuda" style="margin-bottom:14px">
+        Los permisos se guardan en <code>seguridad.rol_permisos</code>. El servidor los comprueba en
+        cada petición y el menú de cada usuario se arma con los suyos.
+      </p>
+      <div id="matrizPermisos"></div>
+    </section>
+
+    <section class="tarjeta panel-seccion" id="panelSesiones" hidden>
+      <div id="listaSesiones"></div>
+    </section>
+
+    <section class="tarjeta panel-seccion" id="panelAccesos" hidden>
+      <div id="listaAccesos"></div>
+    </section>
+
+    <section class="tarjeta panel-seccion" id="panelIntentos" hidden>
+      <p class="campo-ayuda" style="margin-bottom:14px">
+        Tras varios fallos seguidos con el mismo correo, la cuenta queda en espera unos minutos.
+      </p>
+      <div id="listaIntentos"></div>
+    </section>
+
+    <section class="tarjeta panel-seccion" id="panelAuditoria" hidden>
+      <div class="agenda-controles">
+        <select id="filtroModulo" style="padding:10px 12px;border-radius:10px;border:1px solid rgba(34,48,40,.18)">
+          <option value="">Todos los módulos</option>
+          <option value="seguridad">Seguridad</option>
+          <option value="usuarios">Usuarios</option>
+          <option value="agenda">Agenda</option>
+          <option value="mascotas">Mascotas</option>
+        </select>
+        <span class="campo-ayuda" id="contadorAuditoria" style="margin-left:auto"></span>
+      </div>
+      <div id="listaAuditoria"></div>
+    </section>
+
+    <section class="tarjeta panel-seccion" id="panelCodigo" hidden>
+      <p class="campo-ayuda" style="margin-bottom:14px">
+        Uno por rol. Con él, quien lo tenga crea su propia cuenta desde la página de registro y le
+        queda ese panel en vez del de dueños. No caducan: lo que retira a uno de circulación es
+        cambiarlo por otro. El de administración abre el sistema entero, así que entrégalo con cuidado.
+      </p>
+      <div id="cajaCodigo"></div>
+    </section>
+  </main>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/admin-seguridad.js?v=dbcb3001c5"></script>
+</body>
+</html>

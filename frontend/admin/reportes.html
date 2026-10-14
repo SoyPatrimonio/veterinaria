@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes — Administración</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Reportes</h1>
+        <p>Cómo va la clínica en el periodo que elijas. Las facturas anuladas no cuentan.</p>
+      </div>
+      <button type="button" class="btn btn-outline" id="btnDescargar">
+        <svg class="icon"><use href="#icon-carpeta"/></svg> Descargar CSV
+      </button>
+    </header>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end">
+          <label class="campo" style="margin:0">
+            <span>Desde</span>
+            <input type="date" id="filtroDesde">
+          </label>
+          <label class="campo" style="margin:0">
+            <span>Hasta</span>
+            <input type="date" id="filtroHasta">
+          </label>
+          <label class="campo" style="margin:0">
+            <span>Agrupar por</span>
+            <select id="filtroAgrupacion">
+              <option value="dia">Día</option>
+              <option value="mes">Mes</option>
+            </select>
+          </label>
+        </div>
+        <div class="selector-vista" id="atajos">
+          <button type="button" data-dias="7">7 días</button>
+          <button type="button" class="activo" data-dias="30">30 días</button>
+          <button type="button" data-dias="90">90 días</button>
+          <button type="button" data-dias="365">1 año</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="metricas"></section>
+
+    <div class="rejilla-2">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-grafica"/></svg> Facturación</h3></div>
+        <div id="graficaIngresos"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-recibo"/></svg> Cómo pagan</h3></div>
+        <div id="metodosPago"></div>
+      </div>
+    </div>
+
+    <div class="rejilla-2">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-calendar"/></svg> Citas</h3></div>
+        <div id="graficaCitas"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-paw"/></svg> Actividad clínica</h3></div>
+        <div id="actividad"></div>
+      </div>
+    </div>
+
+    <div class="rejilla-2">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-shield"/></svg> Servicios más pedidos</h3></div>
+        <div id="rankingServicios"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-caja"/></svg> Productos más vendidos</h3></div>
+        <div id="rankingProductos"></div>
+      </div>
+    </div>
+
+    <div class="rejilla-2">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-stetho"/></svg> Equipo clínico</h3></div>
+        <div id="tablaVeterinarios"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-heart"/></svg> Diagnósticos frecuentes</h3></div>
+        <div id="rankingDiagnosticos"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/grafica.js?v=dbcb3001c5"></script>
+<script src="../js/admin-reportes.js?v=dbcb3001c5"></script>
+</body>
+</html>

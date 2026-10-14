@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Laboratorio</h1>
+        <p>Orden → muestra → resultado → validación. Al propietario se le avisa solo cuando está validado.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNuevaOrden">
+        <svg class="icon"><use href="#icon-mas"/></svg> Nueva orden
+      </button>
+    </header>
+
+    <section class="tarjeta" id="tarjetaBandeja">
+      <div class="tarjeta-cabecera">
+        <h3>Lo que hay por delante</h3>
+      </div>
+      <div id="bandeja"></div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Órdenes</h3>
+        <div class="agenda-controles">
+          <label class="campo">
+            <span>Estado</span>
+            <select id="filtroEstado">
+              <option value="">Todas</option>
+              <option value="solicitada">Solicitadas</option>
+              <option value="en_proceso">En proceso</option>
+              <option value="completada">Completadas</option>
+              <option value="anulada">Anuladas</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Prioridad</span>
+            <select id="filtroPrioridad">
+              <option value="">Todas</option>
+              <option value="urgente">Urgente</option>
+              <option value="normal">Normal</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="listaOrdenes"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Nueva orden -->
+<div class="modal-fondo" id="modalOrden" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Nueva orden de laboratorio</h3>
+    <p class="modal-sub">Cada examen pedido se crea también en la historia clínica del paciente.</p>
+
+    <p class="mensaje-error" id="errorOrden" hidden></p>
+
+    <form id="formOrden" novalidate>
+      <label class="campo">
+        <span>Paciente *</span>
+        <select name="mascotaId" required><option value="">Cargando…</option></select>
+      </label>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Prioridad</span>
+          <select name="prioridad">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </label>
+        <label class="campo-check" style="align-self:end;margin-bottom:14px">
+          <input type="checkbox" name="ayuno"> Requiere ayuno
+        </label>
+      </div>
+
+      <div class="campo">
+        <span>Exámenes *</span>
+        <div id="listaTipos" style="display:grid;gap:7px;margin-top:6px"></div>
+      </div>
+
+      <label class="campo">
+        <span>Indicaciones</span>
+        <textarea name="indicaciones" maxlength="4000"
+                  placeholder="Sospecha diagnóstica, condiciones de la toma…"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarOrden">Crear orden</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detalle de orden -->
+<div class="modal-fondo" id="modalDetalle" aria-hidden="true">
+  <div class="modal-caja modal-ancho" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloDetalle">Orden</h3>
+    <p class="modal-sub" id="subDetalle"></p>
+
+    <p class="mensaje-error" id="errorDetalle" hidden></p>
+
+    <div id="cuerpoDetalle"></div>
+  </div>
+</div>
+
+<!-- Carga y validación de resultados -->
+<div class="modal-fondo" id="modalResultados" aria-hidden="true">
+  <div class="modal-caja modal-ancho" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloResultados">Resultados</h3>
+    <p class="modal-sub" id="subResultados"></p>
+
+    <p class="mensaje-error" id="errorResultados" hidden></p>
+
+    <div id="cuerpoResultados"></div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/vet-laboratorio.js?v=dbcb3001c5"></script>
+</body>
+</html>

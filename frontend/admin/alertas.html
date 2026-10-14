@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alertas críticas — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Alertas críticas</h1>
+        <p>Lo que no puede esperar. Una alerta se queda hasta que alguien la resuelve.</p>
+      </div>
+      <button type="button" class="btn btn-outline" id="btnRecalcular">
+        <svg class="icon"><use href="#icon-ajustes"/></svg> Recalcular
+      </button>
+    </header>
+
+    <section class="rejilla-metricas" id="metricas"></section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Alertas abiertas</h3>
+        <div class="agenda-controles">
+          <label class="campo">
+            <span>Categoría</span>
+            <select id="filtroCategoria">
+              <option value="">Todas</option>
+              <option value="clinica">Clínica</option>
+              <option value="inventario">Inventario</option>
+              <option value="agenda">Agenda</option>
+              <option value="facturacion">Facturación</option>
+              <option value="equipos">Equipos</option>
+              <option value="personal">Personal</option>
+              <option value="seguridad">Seguridad</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Severidad</span>
+            <select id="filtroSeveridad">
+              <option value="">Todas</option>
+              <option value="critica">Crítica</option>
+              <option value="alta">Alta</option>
+              <option value="media">Media</option>
+              <option value="baja">Baja</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Estado</span>
+            <select id="filtroEstado">
+              <option value="">Abiertas y vistas</option>
+              <option value="abierta">Sin ver</option>
+              <option value="vista">Vistas</option>
+              <option value="resuelta">Resueltas</option>
+              <option value="descartada">Descartadas</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="listaAlertas"></div>
+    </section>
+
+    <section class="tarjeta" id="seccionReglas" hidden>
+      <div class="tarjeta-cabecera">
+        <h3>Reglas y umbrales</h3>
+        <p class="campo-ayuda">Cambiar un umbral no exige volver a desplegar.</p>
+      </div>
+      <div id="listaReglas"></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-fondo" id="modalResolver" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloResolver">Cerrar alerta</h3>
+    <p class="modal-sub" id="subResolver"></p>
+
+    <p class="mensaje-error" id="errorResolver" hidden></p>
+
+    <form id="formResolver" novalidate>
+      <input type="hidden" name="id">
+      <input type="hidden" name="estado">
+
+      <label class="campo">
+        <span id="etiquetaNota">Nota de cierre</span>
+        <textarea name="notaCierre" maxlength="255"
+                  placeholder="Qué se hizo para resolverla, o por qué no aplica."></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarResolver">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/admin-alertas.js?v=dbcb3001c5"></script>
+</body>
+</html>

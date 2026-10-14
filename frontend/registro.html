@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear cuenta — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="acceso">
+  <aside class="acceso-lateral">
+    <a class="acceso-marca" href="index.html">
+      <img src="iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico" alt="">
+      Huellitas de Amor
+    </a>
+
+    <div>
+      <h1>Crea tu cuenta y agenda en dos minutos</h1>
+      <p>Registra a tus mascotas una sola vez y pide citas cuando lo necesites, sin llamar ni esperar.</p>
+
+      <ul class="acceso-lista">
+        <li><svg class="icon"><use href="#icon-paw"/></svg> Todas tus mascotas en una misma cuenta</li>
+        <li><svg class="icon"><use href="#icon-clock"/></svg> Ves los horarios libres reales, sin ida y vuelta</li>
+        <li><svg class="icon"><use href="#icon-heart"/></svg> Historial de consultas, tratamientos y vacunas</li>
+      </ul>
+    </div>
+
+    <p class="acceso-pie">Sogamoso, Boyacá — Lun a dom, 8:00 a.m. a 8:00 p.m.</p>
+  </aside>
+
+  <main class="acceso-panel">
+    <div class="acceso-caja">
+      <a href="index.html" class="acceso-volver">
+        <svg class="icon"><use href="#icon-izquierda"/></svg> Volver al inicio
+      </a>
+
+      <h2>Crear cuenta</h2>
+      <p class="acceso-sub">Elige el tipo de cuenta. La de dueño de mascota se crea sola; las del personal de la clínica piden el código que entrega la administración.</p>
+
+      <p class="mensaje-error" id="errorRegistro" hidden></p>
+
+      <form id="formRegistro" novalidate>
+        <label class="campo">
+          <span>Tipo de cuenta</span>
+          <select name="rol" id="rolCuenta">
+            <option value="cliente">Dueño de mascota</option>
+            <option value="veterinario">Veterinario</option>
+          </select>
+          <span class="campo-ayuda">La cuenta de veterinario necesita el código de acceso que entrega la administración. Las cuentas de administración las crea un administrador desde el panel.</span>
+        </label>
+
+        <label class="campo">
+          <span>Nombre completo</span>
+          <input type="text" name="nombre" autocomplete="name" required placeholder="Tu nombre y apellido">
+        </label>
+
+        <div class="campos-fila">
+          <label class="campo">
+            <span>Correo electrónico</span>
+            <input type="email" name="email" autocomplete="email" required placeholder="tu@correo.com">
+          </label>
+          <label class="campo">
+            <span>Teléfono</span>
+            <input type="tel" name="telefono" autocomplete="tel" placeholder="300 123 4567">
+          </label>
+        </div>
+
+        <label class="campo">
+          <span>Contraseña</span>
+          <input type="password" name="password" autocomplete="new-password" required placeholder="Mínimo 8 caracteres">
+          <span class="campo-ayuda">Al menos 8 caracteres, con una letra y un número.</span>
+        </label>
+
+        <label class="campo">
+          <span>Repite la contraseña</span>
+          <input type="password" name="password2" autocomplete="new-password" required placeholder="••••••••">
+        </label>
+
+        <section class="acceso-personal" id="bloquePersonal" hidden>
+          <h4 id="tituloPersonal">Acceso del personal</h4>
+          <p class="acceso-sub" id="textoPersonal">El código lo entrega la administración de la clínica.</p>
+
+          <label class="campo">
+            <span>Código de acceso</span>
+            <input type="text" name="codigoAcceso" autocomplete="off" spellcheck="false"
+                   autocapitalize="characters" placeholder="VET-XXXX-XXXX-XXXX">
+            <span class="campo-ayuda">Da igual si lo escribes con guiones o sin ellos.</span>
+          </label>
+
+          <div class="campos-fila" id="camposVeterinario">
+            <label class="campo">
+              <span>Número de licencia</span>
+              <input type="text" name="licencia" autocomplete="off" placeholder="MV-12345">
+            </label>
+            <label class="campo">
+              <span>Especialidad</span>
+              <select name="especialidad">
+                <option value="medicina_general">Medicina general</option>
+                <option value="cirugia">Cirugía</option>
+                <option value="dermatologia">Dermatología</option>
+                <option value="cardiologia">Cardiología</option>
+                <option value="odontologia">Odontología</option>
+                <option value="exoticos">Exóticos</option>
+                <option value="imagenes">Imágenes</option>
+                <option value="felinos">Felinos</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <label class="campo-check">
+          <input type="checkbox" name="acepta" required>
+          <span id="textoAcepta">Acepto que la clínica guarde los datos de mis mascotas para su atención médica.</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-bloque" id="btnCrear">Crear cuenta</button>
+      </form>
+
+      <p class="acceso-cambio">¿Ya tienes cuenta? <a href="login.html" class="link-btn">Inicia sesión</a></p>
+    </div>
+  </main>
+</div>
+
+<script src="js/sprite.js?v=dbcb3001c5"></script>
+<script src="js/api.js?v=dbcb3001c5"></script>
+<script src="js/acceso.js?v=dbcb3001c5"></script>
+</body>
+</html>

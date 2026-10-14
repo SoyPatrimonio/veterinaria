@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospitalización — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Hospitalización</h1>
+        <p>Quién está internado, dónde y qué control le toca.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnIngresar">
+        <svg class="icon"><use href="#icon-mas"/></svg> Ingresar paciente
+      </button>
+    </header>
+
+    <section class="rejilla-metricas" id="metricas"></section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Pacientes internados</h3>
+        <p class="campo-ayuda" id="ultimaActualizacion"></p>
+      </div>
+      <div id="listaPacientes"></div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Jaulas y habitaciones</h3>
+        <p class="campo-ayuda">Al dar el alta, la jaula pasa a limpieza antes de volver a ofrecerse.</p>
+      </div>
+      <div id="listaHabitaciones"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Ingreso -->
+<div class="modal-fondo" id="modalIngreso" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Ingresar paciente</h3>
+    <p class="modal-sub">Solo se ofrecen las jaulas que están libres.</p>
+
+    <p class="mensaje-error" id="errorIngreso" hidden></p>
+
+    <form id="formIngreso" novalidate>
+      <label class="campo">
+        <span>Paciente *</span>
+        <select name="mascotaId" required><option value="">Cargando…</option></select>
+      </label>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Veterinario responsable *</span>
+          <select name="veterinarioId" required><option value="">Selecciona</option></select>
+        </label>
+        <label class="campo">
+          <span>Jaula o habitación</span>
+          <select name="habitacionId"><option value="">Sin asignar</option></select>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Motivo del ingreso *</span>
+        <input type="text" name="motivo" required maxlength="255"
+               placeholder="Gastroenteritis con deshidratación, postoperatorio…">
+      </label>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Dieta</span>
+          <input type="text" name="dieta" maxlength="180" placeholder="Ayuno 12 h, luego alimento gastrointestinal">
+        </label>
+        <label class="campo">
+          <span>Pronóstico</span>
+          <select name="pronostico">
+            <option value="">Sin definir</option>
+            <option value="bueno">Bueno</option>
+            <option value="reservado">Reservado</option>
+            <option value="malo">Malo</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Indicaciones</span>
+        <textarea name="indicaciones" maxlength="4000"
+                  placeholder="Fluidoterapia, controles cada 4 h, monitoreo de temperatura…"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarIngreso">Ingresar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Seguimiento del paciente -->
+<div class="modal-fondo" id="modalPaciente" aria-hidden="true">
+  <div class="modal-caja modal-ancho" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloPaciente">Paciente</h3>
+    <p class="modal-sub" id="subPaciente"></p>
+
+    <div class="pestanas" id="pestanasPaciente">
+      <button type="button" class="activa" data-pestana="controles">Controles</button>
+      <button type="button" data-pestana="medicacion">Medicación</button>
+      <button type="button" data-pestana="alimentacion">Alimentación</button>
+      <button type="button" data-pestana="visitas">Visitas</button>
+      <button type="button" data-pestana="egreso">Egreso</button>
+    </div>
+
+    <p class="mensaje-error" id="errorPaciente" hidden></p>
+
+    <div id="cuerpoPaciente"></div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/vet-hospitalizacion.js?v=dbcb3001c5"></script>
+</body>
+</html>

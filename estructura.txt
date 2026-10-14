@@ -1,0 +1,533 @@
+===============================================================================
+ HUELLITAS DE AMOR - QUE HACE LA WEB (ESTRUCTURA)
+ Sistema de gestion veterinaria
+ https://huellitasdeamorvet.vercel.app
+===============================================================================
+
+En una linea: pagina publica de la clinica + tres paneles privados (cliente,
+veterinario, administrador), con API en Express y base de datos PostgreSQL en
+Supabase. Quien puede hacer que lo decide un catalogo de permisos guardado en la
+propia base de datos.
+
+
+===============================================================================
+ 1. MAPA DE PANTALLAS
+===============================================================================
+
+PUBLICO (sin iniciar sesion)
+  /                       index.html      Landing de la clinica
+                                          - Servicios: consulta general,
+                                            vacunacion y desparasitacion,
+                                            laboratorio e imagenes, cirugia y
+                                            hospitalizacion, estetica y bano,
+                                            adopcion responsable
+                                          - Adopciones: mascotas disponibles
+                                          - Tienda: accesorios y alimento
+                                          - Proceso: agenda > recepcion >
+                                            consulta > seguimiento
+                                          - Equipo: los cuatro veterinarios
+                                          - Portal: que ofrece la cuenta
+                                          - Nosotros y contacto
+  /login                  login.html      Iniciar sesion + recuperar contrasena
+  /registro               registro.html   Crear cuenta (solo crea CLIENTES)
+
+COMUN A LOS TRES ROLES
+  /notificaciones         notificaciones.html
+                                          Bandeja de avisos, marcar leidas,
+                                          borrar y recordatorios programados
+
+PANEL DEL CLIENTE  (frontend/cliente/)
+  dashboard.html    Resumen: proxima cita, sus mascotas, avisos
+  mascotas.html     Alta y edicion de fichas: especie, raza, sexo, peso,
+                    alergias, condiciones medicas y FOTO (Supabase Storage)
+  agendar.html      Pedir cita: elige servicio y veterinario y el sistema le
+                    muestra unicamente los horarios realmente libres
+  citas.html        Sus citas, con opcion de CANCELAR (no de reprogramar)
+  historia.html     Historia clinica de sus mascotas, solo lectura:
+                    consultas, vacunas, examenes
+  facturas.html     Sus facturas y el estado de pago
+  perfil.html       Datos personales y cambio de contrasena
+
+PANEL DEL VETERINARIO  (frontend/veterinario/)
+  dashboard.html    Sus citas del dia y pendientes
+  urgencias.html    LISTO. Sala en vivo ordenada por gravedad (no por hora de
+                    llegada), con metricas arriba y refresco cada 30 s:
+                    - Registrar llegada
+                    - Triage con los cinco niveles (rojo a azul)
+                    - Atencion en pestanas: linea de tiempo, signos vitales,
+                      medicacion y cierre
+                    - Cerrar exige decir el desenlace
+  hospitalizacion.html LISTO. Tablero de internados:
+                    - Franja lateral por urgencia (roja si hay dosis vencida,
+                      naranja si lleva mas de 8 h sin control)
+                    - Ingreso, y solo ofrece las jaulas libres
+                    - Seguimiento en pestanas: controles, medicacion (con
+                      "aplicar dosis"), alimentacion, visitas y egreso
+                    - El egreso exige epicrisis
+                    - Estado de cada jaula; al dar de alta pasa a limpieza
+  agenda.html       Su agenda, sus horarios de atencion y bloqueos
+                    (vacaciones, cirugia, ausencias)
+  pacientes.html    Listado de mascotas que atiende
+  historia.html     Registro clinico completo:
+                    - Consulta: motivo, examen fisico, observaciones
+                    - Signos vitales (peso, temperatura, frecuencias)
+                    - Diagnosticos del catalogo
+                    - Tratamientos y prescripciones (recetas)
+                    - Aplicacion de vacunas con su lote
+                    - Examenes y carga de resultados
+                    Todo se guarda en UNA sola transaccion y, si venia de una
+                    cita, la deja marcada como atendida.
+
+PANEL DE ADMINISTRACION  (frontend/admin/)
+  dashboard.html    Indicadores generales de la clinica
+  citas.html        Todas las citas: crear, confirmar, atender, cancelar
+  usuarios.html     Alta de usuarios, cambio de rol, activar/bloquear cuentas
+  veterinarios.html Fichas del equipo, servicios que presta cada uno,
+                    horarios y bloqueos
+  servicios.html    Catalogo de servicios: precio, duracion, que veterinarios
+  inventario.html   Productos, categorias, lotes, existencias por ubicacion,
+                    movimientos (kardex), alertas de vencimiento y stock bajo,
+                    proveedores y compras
+  facturacion.html  Emitir facturas, registrar pagos, anular y devoluciones
+  reportes.html     Reportes por rango de fechas con graficas (dia / mes)
+  seguridad.html    Roles y permisos, sesiones activas (y cerrarlas),
+                    intentos de login, accesos y auditoria
+  alertas.html      LISTO. Tablero de alertas criticas:
+                    - Filtros por categoria, severidad y estado
+                    - Visto / resolver / descartar (descartar exige nota)
+                    - Reglas con umbrales editables sin desplegar
+
+PANTALLAS NUEVAS (todas creadas y en el menu)
+  veterinario/  urgencias, hospitalizacion, laboratorio, imagenes, telemedicina
+  admin/        alertas, farmacia, tienda, caja, fidelizacion, comunidad,
+                soporte, personal, equipos, bioseguridad, integraciones
+  cliente/      telemedicina, tienda, pedidos, plan, adopciones, soporte
+
+  frontend/js/panel-modulo.js reune lo que repetian las paginas de modulo
+  (tabla, insignia de estado, lectura de formulario, pestanas). No es un
+  framework: son cuatro funciones que siguen devolviendo HTML plano.
+
+  El menu lateral solo lista paginas que existen. Al crear una nueva hay
+  que anadirla a MENUS en frontend/js/panel.js: una entrada que apunta a un
+  archivo inexistente es un 404, y eso es peor que un menu incompleto.
+
+
+REPORTES EN PDF  (/api/reportes/pdf/...)
+  Se generan con pdfkit y se devuelven como stream, sin escribir en disco:
+  en una funcion serverless no hay donde dejar el archivo.
+
+  /historia/:id           historia clinica completa con linea de tiempo
+  /vacunacion/:id         certificado de vacunacion con lote y firma
+  /receta/:id             formula medica veterinaria
+  /laboratorio/:id        resultado con rangos de referencia
+  /hospitalizacion/:id    informe de internamiento con epicrisis
+
+  Dos reglas que cumple el modulo:
+   - Un cliente solo saca documentos de SUS mascotas.
+   - Un resultado sin validar no se le entrega al propietario, y si alguien
+     de la clinica lo imprime el PDF sale marcado como PRELIMINAR.
+
+  Cada descarga queda en archivos.reportes_generados: la historia clinica es
+  un documento medico y hay que poder decir quien la saco y cuando.
+
+
+===============================================================================
+ 2. RECORRIDOS PRINCIPALES
+===============================================================================
+
+AGENDAR UNA CITA
+  Cliente elige servicio -> elige veterinario -> elige fecha
+  -> el servidor calcula los huecos libres descontando citas y bloqueos
+  -> el cliente confirma -> queda "programada"
+  -> el veterinario la ve en su agenda -> la atiende y registra la consulta
+  -> la cita pasa a "atendida" y queda en la historia clinica de la mascota
+
+  Cuatro reglas, aplicadas EN EL SERVIDOR (no solo en pantalla):
+    1. No se reservan horarios ya ocupados
+    2. No se reservan fechas pasadas (y hoy exige anticipacion minima)
+    3. No se agenda fuera del horario del veterinario ni de la clinica
+    4. Un veterinario no puede tener dos citas a la misma hora
+       (disponibilidad + SELECT FOR UPDATE + indice unico en la base)
+
+ATENDER Y COBRAR
+  Consulta registrada -> se factura el servicio y los productos usados
+  -> facturar un producto lo DESCUENTA del inventario en la misma transaccion
+  -> se registran pagos -> un disparador recalcula saldo y estado
+     (pendiente / parcial / pagada)
+  -> anular la factura devuelve el producto al inventario
+
+MOVER INVENTARIO
+  El stock nunca se escribe a mano: todo pasa por movimientos_inventario y lo
+  ajusta un disparador de la base, asi que kardex y existencias no pueden
+  contradecirse. Un "ajuste" fija el total que queda, no una diferencia.
+
+
+===============================================================================
+ 3. QUIEN VE QUE (PERMISOS)
+===============================================================================
+
+Las rutas no preguntan "eres admin?" sino "tienes este permiso?".
+Los permisos son filas en la base con codigo modulo.accion
+(citas.crear, historia.ver_todas, auditoria.ver, inventario.gestionar...).
+
+  ROL           PERMISOS   ALCANCE
+  cliente          35      Sus mascotas, sus citas, su historia, sus facturas,
+                           sus recetas, tienda, plan, puntos, PQRS, el plan
+                           preventivo de su mascota, la lista de espera y las
+                           lecturas de su propio dispositivo
+  veterinario     122      Todo lo clinico y su agenda: urgencias,
+                           hospitalizacion, farmacia, laboratorio, imagenes,
+                           nutricion, telemedicina, las once especialidades
+                           (odontologia, cardiologia, dermatologia,
+                           oftalmologia, rehabilitacion, dolor, anestesia,
+                           comportamiento, genetica, reproduccion,
+                           neonatologia), bancos de sangre y tejidos,
+                           prevencion, cronicos, calidad e interconsulta.
+                           Nada de seguridad, facturacion, contratos,
+                           finanzas ni configuracion
+  admin           199      Todo, salvo lo que solo tiene sentido para cliente
+
+  El catalogo pasa de 54 a 214 permisos. Quitarle una capacidad a un rol sigue
+  siendo un DELETE en rol_permisos.
+
+Quitarle una capacidad a un rol es un DELETE en rol_permisos: la ruta empieza a
+responder 403 y la opcion desaparece del menu, sin tocar codigo.
+Crear un rol nuevo (recepcion, auxiliar) es insertar el rol y elegirle permisos.
+
+Ademas del permiso se comprueba la PROPIEDAD: un cliente con citas.ver_propias
+solo ve las suyas; la clinica, con citas.ver_todas, las ve todas.
+
+
+===============================================================================
+ 4. API  (base /api, JWT en Authorization: Bearer <token>)
+===============================================================================
+
+  /auth              registro, login, logout, recuperar, restablecer,
+                     me, perfil, password
+  /seguridad         permisos, roles, sesiones, accesos, intentos, auditoria
+  /mascotas          listar, crear, ver, editar, borrar, subir foto
+  /servicios         catalogo publico + gestion (admin)
+  /veterinarios      listado publico + horarios y bloqueos
+  /citas             disponibilidad, listar, crear, cambiar estado, cancelar
+  /historia          consultas, catalogos, refuerzos, vacunas, examenes
+  /inventario        productos, movimientos, catalogos, alertas,
+                     proveedores, compras
+  /facturas          listar, resumen, crear, pagos, anular, devoluciones
+  /notificaciones    avisos, recordatorios, plantillas
+  /reportes          ?desde=&hasta=&agrupacion=dia|mes
+  /usuarios          alta, estado, rol
+  /clientes          listado (veterinario o admin)
+  /dashboard         responde distinto segun el rol
+  /salud             publico, comprueba que la API vive
+
+  --- modulos clinicos nuevos ---
+  /urgencias         tablero en vivo, llegada, triage, eventos, signos,
+                     medicacion, procedimientos, salas
+  /hospitalizacion   tablero, habitaciones, ingreso, egreso, traslado,
+                     controles, alimentacion, medicacion, visitas
+  /farmacia          recetas, dispensacion, devoluciones, interacciones,
+                     inventario de farmacia, libro de restringidos
+  /laboratorio       ordenes, muestras, parametros, rangos, resultados,
+                     validacion, evolucion de un parametro, bandeja
+  /imagenes          estudios, archivos, informes, galeria por paciente,
+                     estudios comparables
+
+  --- portal del propietario y comunidad ---
+  /telemedicina      videoconsultas, consentimiento, pago previo, chat,
+                     cierre que deja la consulta en la historia clinica
+  /comunidad         identidad digital (QR), mascotas perdidas, avistamientos,
+                     adopciones, solicitudes, entrevistas y seguimiento
+  /tienda            catalogo, carrito, cupones, pedidos, repartidores,
+                     domicilios y seguimiento de la entrega
+  /fidelizacion      planes de salud, suscripciones, consumo de beneficios,
+                     puntos, niveles, recompensas, canjes y promociones
+  /soporte           PQRS, mensajes, encuestas y resultados
+
+  --- administracion y operacion ---
+  /personal          turnos, cuadro, asistencia, ausencias (aprobar bloquea la
+                     agenda), reglas de comision, liquidacion, certificaciones,
+                     productividad del equipo
+  /operaciones       equipos medicos y mantenimientos; bioseguridad
+                     (protocolos, registros, residuos, incidentes, EPP);
+                     caja por sede (apertura, movimientos, cierre y cuadre)
+  /integraciones     estado de lo conectado, DIAN, pasarelas (PSE, Nequi,
+                     Daviplata), transacciones, mensajeria, automatizacion
+  /alertas           tablero, recalculo, resolucion y reglas con umbrales
+  /ia                consultar, sugerencias, revision y registro auditable
+
+  RUTAS PUBLICAS (sin sesion)
+    GET  /comunidad/qr/:token            perfil de la mascota tras escanear
+    GET  /comunidad/perdidas             cartelera de mascotas perdidas
+    POST /comunidad/perdidas/:id/avistamientos   avisar sin tener cuenta
+    GET  /comunidad/adopciones           mascotas disponibles
+    POST /comunidad/adopciones/:id/solicitudes   solicitar adopcion
+    GET  /tienda/categorias, /tienda/articulos   catalogo de la tienda
+  Las que escriben van con limite de 15 envios por hora y por IP.
+
+
+===============================================================================
+ 5. SEGURIDAD
+===============================================================================
+
+  - Contrasenas con bcrypt (10 rondas). Nunca se devuelve el hash.
+  - JWT firmado; en produccion obligatorio y de 32+ caracteres.
+  - Sesiones CON ESTADO en la base: del token solo se guarda el hash SHA-256.
+    Cerrar sesion, cambiar contrasena o bloquear la cuenta invalidan el token
+    de inmediato, aunque al JWT le queden horas de vida.
+  - Bloqueo por intentos: 5 fallos seguidos con el mismo correo -> 15 minutos
+    de espera para esa cuenta (frena la fuerza bruta aunque cambien de IP).
+  - Accesos y auditoria: quien entro, quien cambio que, con el antes y el
+    despues en JSON y la IP.
+  - Recuperacion de contrasena: token de un solo uso, 30 minutos de vida;
+    al usarlo se cierran todas las sesiones de esa cuenta.
+  - El usuario y sus permisos se recargan de la base en CADA peticion.
+  - El registro publico solo crea clientes.
+  - Consultas parametrizadas siempre. Validacion con zod en cuerpo,
+    parametros y query.
+  - Rate limiting: 10 logins / 15 min, 20 citas / hora, 300 peticiones / 15 min.
+  - Helmet con CSP y CORS con lista de origenes permitidos.
+  - Subida de archivos: solo JPG/PNG/WebP, 3 MB, nombre generado por el
+    servidor, guardado en Supabase Storage.
+  - RLS activado en todas las tablas y sin politicas: la clave anon de Supabase
+    no puede leer ni escribir nada. Todo pasa por la API de Express.
+  - Login con mensaje y tiempo de respuesta uniformes: no revela que correos
+    existen.
+
+
+===============================================================================
+ 6. ESTRUCTURA TECNICA
+===============================================================================
+
+proyecto/
+├── api/index.js              entrada de la funcion serverless de Vercel
+├── vercel.json               rutas, cabeceras, cleanUrls y carpeta estatica
+├── scripts/
+│   ├── configurar.js         asistente que rellena y valida el .env
+│   └── deploy.js             variables + despliegue en un paso
+│
+├── frontend/                 lo que Vercel publica como sitio estatico
+│   ├── index.html            landing
+│   ├── login.html, registro.html, notificaciones.html
+│   ├── cliente/              dashboard, mascotas, agendar, citas, historia,
+│   │                         facturas, perfil
+│   ├── veterinario/          dashboard, agenda, pacientes, historia
+│   ├── admin/                dashboard, citas, usuarios, veterinarios,
+│   │                         servicios, inventario, facturacion, reportes,
+│   │                         seguridad
+│   ├── css/                  style.css (landing) + panel.css (paneles)
+│   ├── js/                   api.js, panel.js, sprite.js + uno por pagina
+│   └── iconos/
+│
+├── backend/src/
+│   ├── config/               env.js, database.js (pool de pg + search_path)
+│   ├── controllers/          auth, seguridad, mascotas, citas, servicios,
+│   │                         veterinarios, usuarios, dashboard, historia,
+│   │                         inventario, facturas, notificaciones, reportes,
+│   │                         urgencias, hospitalizacion, farmacia,
+│   │                         laboratorio, imagenes
+│   ├── middleware/           auth, roles, validation, rateLimit,
+│   │                         errorHandler, upload
+│   ├── models/               consultas SQL parametrizadas
+│   ├── routes/               una por recurso + index.js
+│   ├── services/             auth, agenda, storage, facturacion,
+│   │                         notificaciones
+│   ├── utils/                ApiError, jwt, fechas, esquemas (zod)
+│   ├── app.js                middleware, CORS, helmet, estaticos
+│   └── server.js             arranque y cierre ordenado
+│
+└── database/supabase/
+    ├── schema.sql            50 esquemas, 457 tablas, 15 vistas,
+    │                         disparadores y RLS
+    └── seed.sql              sedes, 214 permisos, catalogos clinicos,
+                              equipo y datos de ejemplo
+
+BASE DE DATOS POR MODULOS (un esquema de PostgreSQL por modulo)
+  configuracion/     sedes, configuraciones, horarios de sede
+  seguridad/         roles, permisos, sesiones, intentos, accesos, auditoria
+  usuarios/          usuarios, clientes, veterinarios, empleados
+  mascotas/          especies, razas, mascotas, alergias, condiciones, pesos,
+                     referencias de crecimiento
+  agenda/            servicios, horarios, bloqueos, citas, historial de citas
+  historia_clinica/  consultas, signos vitales, diagnosticos, tratamientos,
+                     prescripciones, vacunas y sus esquemas, desparasitacion,
+                     examenes, cirugias, hospitalizacion (habitaciones,
+                     alimentacion, medicacion, visitas), evoluciones,
+                     antecedentes, reacciones adversas, firmas y documentos
+  inventario/        productos, proveedores, existencias, lotes, compras,
+                     movimientos, transferencias
+  facturacion/       facturas, detalle, pagos, devoluciones, cajas y cuadres
+  comunicacion/      notificaciones, plantillas, recordatorios, reglas
+                     automaticas
+  archivos/          documentos de facturacion, adjuntos, reportes generados
+  urgencias/         salas, ingresos, triage, eventos, medicacion,
+                     procedimientos
+  farmacia/          recetas, dispensaciones, interacciones, devoluciones
+  laboratorio/       ordenes, muestras, parametros, rangos de referencia
+  imagenes/          estudios, archivos, informes
+  nutricion/         alimentos, evaluaciones, planes, restricciones
+  telemedicina/      sesiones, mensajes
+  comunidad/         identidad digital (QR), perdidas, avistamientos,
+                     adopciones (solicitudes, entrevistas, contratos,
+                     seguimiento)
+  tienda/            categorias, articulos, carritos, cupones, pedidos,
+                     repartidores, domicilios, seguimiento
+  fidelizacion/      planes de salud, beneficios, suscripciones, niveles,
+                     puntos, recompensas, canjes, promociones
+  soporte/           tickets PQRS, mensajes, encuestas, respuestas
+  personal/          turnos, asignaciones, asistencia, ausencias, comisiones,
+                     certificaciones
+  equipos/           equipos medicos y mantenimientos
+  bioseguridad/      protocolos, registros, residuos, incidentes, EPP
+  integraciones/     proveedor DIAN, facturas electronicas, pasarelas de pago,
+                     transacciones, mensajes enviados
+  alertas/           reglas y alertas criticas, y las seis bandejas del
+                     centro de alertas (clinica, inventario, financiera,
+                     seguridad, operativa y documental) con su escalamiento
+  ia/                solicitudes, respuestas, fuentes consultadas,
+                     sugerencias clinicas, revisiones y aprobaciones;
+                     ademas la IA administrativa (predicciones y analisis)
+
+  --- modulos 39 al 82 ---
+  prevencion/        planes preventivos, calendario de salud, factores de
+                     riesgo, etapas de vida y pacientes cronicos
+  banco_sangre/      donantes, donaciones, unidades, almacenamiento,
+                     compatibilidad, transfusiones, stock y emergencias
+  banco_tejidos/     donantes, muestras, conservacion y procedimientos
+  odontologia/       piezas, odontogramas, limpiezas y procedimientos
+  cardiologia/       evaluaciones, ECG, ecocardiogramas y seguimiento
+  dermatologia/      zonas, lesiones, pruebas, fotografias y seguimiento
+  oftalmologia/      evaluaciones, pruebas y tratamientos por ojo
+  rehabilitacion/    fisioterapia, ejercicios, terapias, movilidad y todo
+                     el manejo del dolor (escalas, dosis e intervenciones)
+  anestesia/         protocolos, monitorizacion minuto a minuto, eventos
+                     y recuperacion
+  comportamiento/    evaluaciones, problemas, desencadenantes y planes
+  genetica/          perfiles, muestras, pruebas y antecedentes
+  reproduccion/      ciclos, cruzamientos, gestaciones, partos, camadas,
+                     cachorros y neonatologia
+  calidad/           eventos adversos e investigacion, seguridad del
+                     paciente, control de infecciones y trazabilidad
+  interconsulta/     segunda opinion y referencias a otras instituciones
+  atencion/          colas y turnos, experiencia del cliente y agenda
+                     inteligente (lista de espera, sobrecupo, prediccion)
+  dispositivos/      monitoreo remoto del paciente e IoT clinico
+  gestion_residuos/  tipos, contenedores, gestores, manifiestos y
+                     trazabilidad hasta el certificado de destruccion
+  contratos/         contratos de cliente, proveedor y empleado, mas la
+                     evaluacion documental de proveedores
+  sucursales/        configuracion, responsables, metas e indicadores
+  finanzas/          cuentas por cobrar y pagar, gastos, presupuestos,
+                     conciliaciones, cierres y comisiones
+  centro_operaciones/ la foto de cada indicador (el tablero son vistas)
+  automatizacion/    motor de reglas y motor de workflows
+  documentos/        versiones, firmas, permisos, vencimientos y descargas
+  continuidad/       servicios criticos, planes, incidentes y simulacros
+
+  En total 457 tablas y 15 vistas. Los nombres de tabla no se repiten entre
+  esquemas: el backend consulta con search_path y dos tablas iguales harian
+  que `FROM x` apuntara a la del esquema que va primero, en silencio. Por eso
+  hay tablas con sufijo (turnos_atencion, sensores_mascota, acciones_regla):
+  el nombre corto ya estaba ocupado.
+
+VISTAS DE APOYO
+  v_citas_detalle              las citas con mascota, cliente y veterinario
+  v_permisos_usuario           permisos efectivos de cada cuenta
+  v_stock_productos            existencias con aviso de stock bajo
+  v_lotes_vencimiento          lotes vencidos, criticos y proximos
+  v_linea_tiempo               toda la historia de un paciente en una lista
+  v_vacunas_pendientes         quien tiene vacunas vencidas o proximas
+  v_desparasitaciones_pendientes  lo mismo con la desparasitacion
+  v_hospitalizados             tablero de internados y controles vencidos
+  v_urgencias_activas          sala de urgencias ordenada por gravedad
+  v_beneficios_disponibles     cuanto le queda al cliente de su plan
+  v_pacientes_criticos         internados graves + urgencias rojo/naranja
+  v_citas_actuales             las citas de hoy y cuales van con retraso
+  v_inventario_critico         stock bajo y lotes vencidos o por vencer
+  v_equipos_fuera_servicio     equipos parados y mantenimientos vencidos
+  v_alertas_globales           todas las alertas abiertas en una sola lista
+
+AUTOMATISMOS DE LA BASE (disparadores)
+  trg_mascota_historia   toda mascota nueva abre su historia clinica
+  trg_citas_historial    cada cambio de estado deja su renglon
+  trg_signos_peso        el peso de la consulta se copia a la ficha
+  trg_movimiento_stock   cada movimiento ajusta producto y existencias
+  trg_pagos_factura      un pago recalcula saldo y estado de la factura
+
+
+===============================================================================
+ 7. COMO SE LEVANTA Y SE PUBLICA
+===============================================================================
+
+  npm install
+  npm run configurar      asistente del .env
+  npm run db:setup        carga schema.sql + seed.sql en Supabase
+  npm start               http://localhost:3000   (npm run dev = recarga auto)
+  npm test                pruebas unitarias, sin base de datos
+  npm run lint            revisa el codigo
+  npm run deploy          publica en Vercel (NO toca la base de datos)
+  npm run deploy -- --recargar-base   borra y recrea la base (cuidado)
+
+  Vercel sirve frontend/ como sitio estatico y la API de Express como funcion
+  serverless en /api/*, todo bajo el mismo dominio.
+  Comprobacion rapida: https://<dominio>/api/salud
+
+
+===============================================================================
+ 8. CUENTAS DE PRUEBA (las crea seed.sql - cambiarlas antes de publicar)
+===============================================================================
+
+  Administrador   admin@huellitas.com        Admin1234
+  Veterinaria     valentina@huellitas.com    Vet12345
+  Veterinario     andres@huellitas.com       Vet12345
+  Veterinaria     paula@huellitas.com        Vet12345
+  Veterinario     julian@huellitas.com       Vet12345
+  Cliente         daniela@correo.com         Cliente123
+  Cliente         carlos@correo.com          Cliente123
+
+
+===============================================================================
+ 9. QUE FALTA
+===============================================================================
+
+La base de datos y los permisos ya cubren los modulos 9 al 82 completos. La
+API y las pantallas van por detras, y conviene tenerlo claro para no buscar
+un endpoint que todavia no existe.
+
+  CON BASE + API + PERMISOS (falta la pantalla)
+    Urgencias, hospitalizacion, farmacia, laboratorio, imagenologia.
+
+  CON BASE + PERMISOS (falta API y pantalla)
+    Nutricion, telemedicina, portal ampliado del propietario, identidad
+    digital con QR, mascotas perdidas, adopciones, tienda, domicilios,
+    planes de salud, fidelizacion, PQRS, automatizacion, dashboard
+    empresarial, inteligencia de negocio, personal, equipos medicos,
+    bioseguridad, caja por sede, integraciones (DIAN, PSE, Nequi,
+    Daviplata, WhatsApp), alertas criticas, asistente de IA y los
+    reportes en PDF.
+
+    Y los modulos 39 al 82, que se acaban de anadir: medicina preventiva,
+    banco de sangre y de tejidos, las once especialidades (odontologia,
+    cardiologia, dermatologia, oftalmologia, rehabilitacion, dolor,
+    anestesia, comportamiento, genetica, reproduccion y neonatologia),
+    nutricion avanzada, riesgo clinico, seguridad del paciente, control
+    de infecciones, trazabilidad clinica, segunda opinion, referencias,
+    colas, experiencia del cliente, salud por etapa de vida, patologias
+    cronicas, monitoreo remoto, IoT clinico, residuos, proveedores,
+    contratos, sucursales, control financiero, comisiones, citas
+    inteligentes, centro de operaciones, motor de reglas, motor de
+    automatizacion, IA auditable y administrativa, centro de documentos,
+    centro de alertas, continuidad operativa y centro de configuracion.
+
+  DEPENDE DE TERCEROS (la base y la pantalla se pueden hacer ya; transmitir
+  de verdad exige contrato y credenciales)
+    Facturacion electronica DIAN  -> proveedor tecnologico autorizado
+    PSE / Nequi / Daviplata       -> cuenta de comercio en la pasarela
+    WhatsApp                      -> Meta Business API aprobada
+    Videollamada de telemedicina  -> proveedor de video (el sistema guarda
+                                     sala, enlace, chat, consentimiento y
+                                     pago; no transporta el video)
+  Por eso integraciones.pasarelas_pago y proveedores_facturacion se cargan
+  INACTIVAS: sin credenciales reales el sistema factura en papel y no
+  intenta transmitir nada.
+
+===============================================================================

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historia clínica — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Historia clínica</h1>
+        <p>Todo lo que la clínica ha registrado de tus mascotas: consultas, vacunas y exámenes.</p>
+      </div>
+      <label class="campo" style="margin:0;min-width:210px">
+        <span>Mascota</span>
+        <select id="selectorMascota"></select>
+      </label>
+    </header>
+
+    <section class="tarjeta" id="fichaResumen"></section>
+
+    <div class="pestanas" id="pestanas">
+      <button type="button" class="activa" data-pestana="consultas">Consultas</button>
+      <button type="button" data-pestana="vacunas">Carné de vacunas</button>
+      <button type="button" data-pestana="examenes">Exámenes</button>
+      <button type="button" data-pestana="antecedentes">Alergias y peso</button>
+    </div>
+
+    <section class="panel-pestana" id="panelConsultas">
+      <div id="listaConsultas"></div>
+    </section>
+
+    <section class="panel-pestana" id="panelVacunas" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-syringe"/></svg> Carné de vacunación</h3></div>
+        <div id="listaVacunas"></div>
+      </div>
+    </section>
+
+    <section class="panel-pestana" id="panelExamenes" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-micro"/></svg> Exámenes</h3></div>
+        <div id="listaExamenes"></div>
+      </div>
+    </section>
+
+    <section class="panel-pestana" id="panelAntecedentes" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-alerta"/></svg> Alergias y condiciones</h3></div>
+        <div id="listaAntecedentes"></div>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera"><h3><svg class="icon"><use href="#icon-grafica"/></svg> Curva de peso</h3></div>
+        <div id="curvaPeso"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-fondo" id="modalDetalle" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <div id="detalleConsulta"></div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/grafica.js?v=dbcb3001c5"></script>
+<script src="../js/historia-ui.js?v=dbcb3001c5"></script>
+<script src="../js/cliente-historia.js?v=dbcb3001c5"></script>
+</body>
+</html>

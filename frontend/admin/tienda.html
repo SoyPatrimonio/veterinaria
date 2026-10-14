@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tienda — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Tienda</h1>
+        <p>El artículo apunta al producto del inventario: vender por la web descuenta del mismo stock.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnPrincipal">
+        <svg class="icon"><use href="#icon-mas"/></svg> Nuevo artículo
+      </button>
+    </header>
+
+    <div class="pestanas" id="pestanas">
+      <button type="button" class="activa" data-pestana="pedidos">Pedidos</button>
+      <button type="button" data-pestana="domicilios">Domicilios</button>
+      <button type="button" data-pestana="articulos">Catálogo</button>
+      <button type="button" data-pestana="cupones">Cupones</button>
+    </div>
+
+    <section class="tarjeta">
+      <p class="mensaje-error" id="error" hidden></p>
+      <div id="contenido"></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-fondo" id="modal" aria-hidden="true">
+  <div class="modal-caja modal-ancho" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloModal">Detalle</h3>
+    <p class="modal-sub" id="subModal"></p>
+    <p class="mensaje-error" id="errorModal" hidden></p>
+    <div id="cuerpoModal"></div>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/panel-modulo.js?v=dbcb3001c5"></script>
+<script src="../js/admin-tienda.js?v=dbcb3001c5"></script>
+</body>
+</html>

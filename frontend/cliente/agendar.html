@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agendar cita — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Agendar una cita</h1>
+        <p>Solo se muestran horarios realmente disponibles del veterinario que elijas.</p>
+      </div>
+    </header>
+
+    <nav class="pasos" id="pasos" aria-label="Progreso"></nav>
+
+    <p class="mensaje-error" id="errorAgenda" hidden></p>
+
+    <section class="tarjeta">
+      <!-- Paso 1: mascota -->
+      <div class="panel-pestana" data-paso="1" hidden>
+        <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-paw"/></svg> ¿Para cuál mascota?</h2></div>
+        <div id="opcionesMascota"></div>
+      </div>
+
+      <!-- Paso 2: servicio -->
+      <div class="panel-pestana" data-paso="2" hidden>
+        <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-stetho"/></svg> ¿Qué servicio necesitas?</h2></div>
+        <div id="opcionesServicio"></div>
+      </div>
+
+      <!-- Paso 3: veterinario -->
+      <div class="panel-pestana" data-paso="3" hidden>
+        <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-user"/></svg> ¿Con cuál veterinario?</h2></div>
+        <div id="opcionesVeterinario"></div>
+      </div>
+
+      <!-- Paso 4 y 5: fecha y hora -->
+      <div class="panel-pestana" data-paso="4" hidden>
+        <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-calendar"/></svg> Elige día y hora</h2></div>
+        <label class="campo" style="max-width:260px">
+          <span>Fecha</span>
+          <input type="date" id="inputFecha">
+        </label>
+        <div id="horariosDisponibles"></div>
+      </div>
+
+      <!-- Paso 6: confirmación -->
+      <div class="panel-pestana" data-paso="5" hidden>
+        <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-check"/></svg> Confirma tu cita</h2></div>
+        <div class="resumen-cita" id="resumenCita"></div>
+        <label class="campo">
+          <span>Motivo de la consulta (opcional)</span>
+          <textarea id="inputMotivo" maxlength="255" placeholder="Cuéntanos brevemente qué le pasa a tu mascota"></textarea>
+        </label>
+      </div>
+
+      <div class="acciones-paso">
+        <button type="button" class="btn btn-outline" id="btnAtras">Atrás</button>
+        <button type="button" class="btn btn-primary" id="btnSiguiente">Continuar</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/cliente-agendar.js?v=dbcb3001c5"></script>
+</body>
+</html>

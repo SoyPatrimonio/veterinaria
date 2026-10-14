@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis mascotas — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Mis mascotas</h1>
+        <p>Registra a cada una para poder agendar citas y llevar su historia clínica.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNueva">
+        <svg class="icon"><use href="#icon-mas"/></svg> Registrar mascota
+      </button>
+    </header>
+
+    <div id="bienvenida"></div>
+    <div id="listado"></div>
+  </main>
+</div>
+
+<!-- Alta y edición -->
+<div class="modal-fondo" id="modalMascota" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloModal">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3 id="tituloModal">Registrar mascota</h3>
+    <p class="modal-sub">Los datos médicos los completa el veterinario en cada consulta.</p>
+
+    <p class="mensaje-error" id="errorMascota" hidden></p>
+
+    <form id="formMascota" novalidate>
+      <input type="hidden" name="id">
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Nombre *</span>
+          <input type="text" name="nombre" required maxlength="80" placeholder="Luna">
+        </label>
+        <label class="campo">
+          <span>Sexo</span>
+          <select name="sexo">
+            <option value="desconocido">Sin especificar</option>
+            <option value="hembra">Hembra</option>
+            <option value="macho">Macho</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Especie *</span>
+          <select name="especieId" id="selectEspecie" required></select>
+        </label>
+        <label class="campo">
+          <span>Raza</span>
+          <select name="razaId" id="selectRaza">
+            <option value="">Sin especificar</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="campos-fila-3">
+        <label class="campo">
+          <span>Fecha de nacimiento</span>
+          <input type="date" name="fechaNacimiento">
+        </label>
+        <label class="campo">
+          <span>Peso (kg)</span>
+          <input type="number" name="pesoKg" step="0.1" min="0.1" max="500" placeholder="18.4">
+        </label>
+        <label class="campo">
+          <span>Color</span>
+          <input type="text" name="color" maxlength="60" placeholder="Café con blanco">
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Microchip</span>
+        <input type="text" name="microchip" maxlength="40" placeholder="982000123456789">
+      </label>
+
+      <label class="campo-check">
+        <input type="checkbox" name="esterilizado"> Está esterilizado / castrado
+      </label>
+
+      <label class="campo">
+        <span>Información adicional</span>
+        <textarea name="informacion" maxlength="2000" placeholder="Carácter, alergias conocidas, cuidados especiales…"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarMascota">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/cliente-mascotas.js?v=dbcb3001c5"></script>
+</body>
+</html>

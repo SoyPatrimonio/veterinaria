@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios — Administración</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Usuarios</h1>
+        <p>Clientes y administradores. Los veterinarios se crean desde su propio módulo.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNuevo">
+        <svg class="icon"><use href="#icon-mas"/></svg> Crear usuario
+      </button>
+    </header>
+
+    <section class="tarjeta">
+      <div class="agenda-controles">
+        <label class="campo" style="margin:0;flex:1;max-width:320px">
+          <input type="search" id="inputBusqueda" placeholder="Buscar por nombre, correo o teléfono…" autocomplete="off">
+        </label>
+        <select id="filtroRol" style="padding:10px 12px;border-radius:10px;border:1px solid rgba(34,48,40,.18)">
+          <option value="">Todos los roles</option>
+          <option value="cliente">Clientes</option>
+          <option value="veterinario">Veterinarios</option>
+          <option value="admin">Administradores</option>
+        </select>
+        <select id="filtroEstado" style="padding:10px 12px;border-radius:10px;border:1px solid rgba(34,48,40,.18)">
+          <option value="">Todos los estados</option>
+          <option value="activo">Activos</option>
+          <option value="inactivo">Inactivos</option>
+        </select>
+        <span class="campo-ayuda" id="contador" style="margin-left:auto"></span>
+      </div>
+
+      <div id="listaUsuarios"></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-fondo" id="modalUsuario" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Crear usuario</h3>
+    <p class="modal-sub">Para dar de alta un veterinario usa el módulo de veterinarios: allí se registran licencia y horarios.</p>
+
+    <p class="mensaje-error" id="errorUsuario" hidden></p>
+
+    <form id="formUsuario" novalidate>
+      <label class="campo">
+        <span>Nombre completo *</span>
+        <input type="text" name="nombre" required maxlength="120">
+      </label>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Correo *</span>
+          <input type="email" name="email" required>
+        </label>
+        <label class="campo">
+          <span>Teléfono</span>
+          <input type="tel" name="telefono" maxlength="30">
+        </label>
+      </div>
+      <div class="campos-fila">
+        <label class="campo">
+          <span>Rol *</span>
+          <select name="rol" required>
+            <option value="cliente">Cliente</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
+        <label class="campo">
+          <span>Contraseña *</span>
+          <input type="password" name="password" required autocomplete="new-password">
+          <span class="campo-ayuda">Mínimo 8 caracteres, con letra y número.</span>
+        </label>
+      </div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarUsuario">Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/admin-usuarios.js?v=dbcb3001c5"></script>
+</body>
+</html>

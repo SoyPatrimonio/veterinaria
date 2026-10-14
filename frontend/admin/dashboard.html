@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Panel de administración</h1>
+        <p id="fechaHoy"></p>
+      </div>
+      <a href="../admin/citas.html" class="btn btn-primary">
+        <svg class="icon"><use href="#icon-calendar"/></svg> Ver todas las citas
+      </a>
+    </header>
+
+    <section class="rejilla-metricas" id="metricas"></section>
+
+    <div class="rejilla-2">
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h2><svg class="icon"><use href="#icon-clock"/></svg> Citas de hoy</h2>
+          <a href="../admin/citas.html" class="link-btn">Gestionar</a>
+        </div>
+        <div id="citasHoy"></div>
+      </section>
+
+      <div>
+        <section class="tarjeta">
+          <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-grafica"/></svg> Servicios más solicitados</h2></div>
+          <div id="serviciosTop"></div>
+        </section>
+
+        <section class="tarjeta">
+          <div class="tarjeta-cabecera"><h2><svg class="icon"><use href="#icon-users"/></svg> Últimos clientes</h2></div>
+          <div id="ultimosClientes"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/sprite.js?v=dbcb3001c5"></script>
+<script src="../js/api.js?v=dbcb3001c5"></script>
+<script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/admin-dashboard.js?v=dbcb3001c5"></script>
+</body>
+</html>

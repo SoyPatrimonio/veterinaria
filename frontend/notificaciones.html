@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avisos — Huellitas de Amor</title>
+<link rel="icon" type="image/x-icon" href="iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/panel.css?v=dbcb3001c5">
+</head>
+<body>
+
+<div class="panel" id="panel">
+  <aside class="barra-lateral" id="barraLateral"></aside>
+  <div class="velo-menu" id="veloMenu"></div>
+
+  <main class="contenido">
+    <header class="contenido-cabecera">
+      <div>
+        <button class="abrir-menu" id="abrirMenu" aria-label="Abrir menú">☰</button>
+        <h1>Avisos</h1>
+        <p>Novedades de tus citas, tu historia clínica y tus facturas.</p>
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button type="button" class="btn btn-outline" id="btnLeerTodas">Marcar todo como leído</button>
+        <button type="button" class="btn btn-primary" id="btnEnviar" hidden>
+          <svg class="icon"><use href="#icon-mas"/></svg> Enviar aviso
+        </button>
+      </div>
+    </header>
+
+    <div class="pestanas" id="pestanas">
+      <button type="button" class="activa" data-pestana="avisos">Mis avisos</button>
+      <button type="button" data-pestana="recordatorios">Recordatorios programados</button>
+    </div>
+
+    <section class="panel-pestana" id="panelAvisos">
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h3><svg class="icon"><use href="#icon-alerta"/></svg> Bandeja</h3>
+          <label class="campo-check" style="margin:0">
+            <input type="checkbox" id="filtroNoLeidas"> Solo sin leer
+          </label>
+        </div>
+        <div id="listaAvisos"></div>
+      </div>
+    </section>
+
+    <section class="panel-pestana" id="panelRecordatorios" hidden>
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h3><svg class="icon"><use href="#icon-clock"/></svg> Programados</h3>
+          <button type="button" class="btn btn-outline btn-sm" id="btnProcesar">Entregar los vencidos</button>
+        </div>
+        <div id="listaRecordatorios"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-fondo" id="modalEnviar" aria-hidden="true">
+  <div class="modal-caja" role="dialog" aria-modal="true">
+    <button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+    <h3>Enviar aviso</h3>
+    <p class="modal-sub">Llega a la bandeja de quien elijas, dentro del sistema.</p>
+
+    <p class="mensaje-error" id="errorEnviar" hidden></p>
+
+    <form id="formEnviar" novalidate>
+      <label class="campo">
+        <span>Destinatario *</span>
+        <select name="destino" id="selectDestino">
+          <option value="rol:cliente">Todos los clientes</option>
+          <option value="rol:veterinario">Todo el equipo clínico</option>
+          <option value="rol:admin">Administración</option>
+        </select>
+      </label>
+
+      <label class="campo">
+        <span>Título *</span>
+        <input type="text" name="titulo" required maxlength="150">
+      </label>
+
+      <label class="campo">
+        <span>Mensaje</span>
+        <textarea name="mensaje" maxlength="2000"></textarea>
+      </label>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-outline" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarEnvio">Enviar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/sprite.js?v=dbcb3001c5"></script>
+<script src="js/api.js?v=dbcb3001c5"></script>
+<script src="js/panel.js?v=dbcb3001c5"></script>
+<script src="js/notificaciones.js?v=dbcb3001c5"></script>
+</body>
+</html>
