@@ -24,6 +24,10 @@
     });
 
     $('#formNuevo').addEventListener('submit', crear);
+    H.password.adjuntar($('#formNuevo').password, {
+      datos: () => ({ nombre: $('#formNuevo').nombre.value, email: $('#formNuevo').email.value }),
+      generar: true,
+    });
     $('#formEditar').addEventListener('submit', actualizar);
 
     await recargar();
@@ -97,9 +101,8 @@
         .concat([1, 2, 3, 4, 5].map((dia) => ({ diaSemana: dia, horaInicio: '14:00', horaFin: '18:00' }))),
     };
 
-    if (cuerpo.password.length < 8 || !/[A-Za-z]/.test(cuerpo.password) || !/\d/.test(cuerpo.password)) {
-      return H.mostrarError(caja, new Error('La contraseña debe tener al menos 8 caracteres, con una letra y un número.'));
-    }
+    const problema = H.password.validar(cuerpo.password, cuerpo);
+    if (problema) return H.mostrarError(caja, new Error(problema));
 
     await H.conBoton($('#btnGuardarNuevo'), 'Registrando…', async () => {
       try {

@@ -1211,3 +1211,52 @@ table.tabla .acciones{ display: flex; gap: 7px; flex-wrap: wrap; }
   opacity: 0;
   pointer-events: none;
 }
+
+/* ------------------------------------------------------------
+   Contraseñas: botón de mostrar/ocultar y guía en vivo
+   (frontend/js/password.js)
+   ------------------------------------------------------------ */
+.pw-caja{ position: relative; display: block; }
+.pw-caja input{ padding-right: 44px; }
+.pw-ojo{
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  width: 34px; height: 34px; display: grid; place-items: center;
+  background: none; border: 0; border-radius: 8px; cursor: pointer;
+  color: var(--muted-2); font-size: 1.1rem;
+  transition: color .2s var(--ease), background .2s var(--ease);
+}
+.pw-ojo:hover{ color: var(--moss); background: var(--moss-tint); }
+.pw-ojo:focus-visible{ outline: 2px solid var(--moss); outline-offset: 1px; }
+
+.campo > .pw-caja{ margin: 0; font-size: inherit; font-weight: inherit; color: inherit; }
+.pw-guia{ margin-top: 8px; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
+.pw-medidor{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 4px; }
+.pw-medidor span{ height: 5px; border-radius: 3px; background: var(--border-strong); transition: background .25s var(--ease); }
+.pw-guia[data-nivel="0"] .llena,
+.pw-guia[data-nivel="1"] .llena{ background: var(--error); }
+.pw-guia[data-nivel="2"] .llena{ background: var(--aviso); }
+.pw-guia[data-nivel="3"] .llena{ background: var(--exito); }
+.pw-guia[data-nivel="4"] .llena{ background: var(--moss); }
+.pw-nivel{ min-height: 1.2em; font-weight: 600; margin-bottom: 4px; }
+.pw-guia[data-nivel="0"] .pw-nivel,
+.pw-guia[data-nivel="1"] .pw-nivel{ color: var(--error); }
+.pw-guia[data-nivel="2"] .pw-nivel{ color: var(--aviso); }
+.pw-guia[data-nivel="3"] .pw-nivel,
+.pw-guia[data-nivel="4"] .pw-nivel{ color: var(--exito); }
+
+.pw-reglas{ display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 12px; }
+.pw-reglas li{ position: relative; padding-left: 18px; color: var(--muted-2); transition: color .2s var(--ease); }
+.pw-reglas li::before{
+  content: ''; position: absolute; left: 2px; top: .45em;
+  width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor;
+}
+.pw-reglas li.ok{ color: var(--exito); }
+.pw-reglas li.ok::before{
+  border: 0; width: 10px; height: 6px; top: .35em; border-radius: 0;
+  border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+.pw-aviso{ margin-top: 6px; color: var(--error); }
+.pw-generar{ margin-top: 8px; font-size: 0.8rem; }
+.pw-coincide{ margin-top: 6px; font-weight: 400; font-size: 0.8rem; color: var(--error); }
+.pw-coincide.ok{ color: var(--exito); }

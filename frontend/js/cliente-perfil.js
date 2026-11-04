@@ -15,6 +15,10 @@
     $('#formPerfil').addEventListener('submit', guardarPerfil);
     $('#formPassword').addEventListener('submit', cambiarPassword);
 
+    const formPw = $('#formPassword');
+    H.password.conOjo(formPw.actual);
+    H.password.adjuntar(formPw.nueva, { confirmar: formPw.nueva2, datos: datosDelPerfil });
+
     try {
       const datos = await H.api.get('/auth/me');
       const form = $('#formPerfil');
@@ -72,6 +76,12 @@
     });
   }
 
+  /** El nombre y el correo que la contraseña no puede repetir. */
+  function datosDelPerfil() {
+    const perfil = $('#formPerfil');
+    return { nombre: perfil.nombre.value, email: perfil.email.value };
+  }
+
   async function cambiarPassword(e) {
     e.preventDefault();
     const form = e.target;
@@ -88,9 +98,8 @@
     if (nueva !== nueva2) {
       return H.mostrarError(error, new Error('Las contraseñas nuevas no coinciden.'));
     }
-    if (nueva.length < 8 || !/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(nueva) || !/\d/.test(nueva)) {
-      return H.mostrarError(error, new Error('La contraseña nueva debe tener al menos 8 caracteres, con una letra y un número.'));
-    }
+    const problema = H.password.validar(nueva, datosDelPerfil());
+    if (problema) return H.mostrarError(error, new Error(problema));
 
     await H.conBoton($('#btnCambiarPassword'), 'Cambiando…', async () => {
       try {

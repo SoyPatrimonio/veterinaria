@@ -148,6 +148,8 @@
     if (!form) return;
 
     const caja = $('#errorCambio');
+    H.password.conOjo(form.actual);
+    H.password.adjuntar(form.nueva, { confirmar: form.nueva2 });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -156,9 +158,8 @@
       const actual = form.actual.value;
       const nueva = form.nueva.value;
 
-      if (nueva.length < 8 || !/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(nueva) || !/\d/.test(nueva)) {
-        return H.mostrarError(caja, new Error('La contraseña debe tener al menos 8 caracteres, con una letra y un número.'));
-      }
+      const problema = H.password.validar(nueva);
+      if (problema) return H.mostrarError(caja, new Error(problema));
       if (nueva !== form.nueva2.value) {
         return H.mostrarError(caja, new Error('Las contraseñas no coinciden.'));
       }
@@ -227,6 +228,7 @@
 
     const caja = $('#errorLogin');
     const boton = $('#btnEntrar');
+    H.password.conOjo(form.password);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -347,6 +349,8 @@
     const caja = $('#errorRegistro');
     const boton = $('#btnCrear');
     const rolElegido = prepararSelectorRol(form);
+    const datosCuenta = () => ({ nombre: form.nombre.value, email: form.email.value });
+    H.password.adjuntar(form.password, { confirmar: form.password2, datos: datosCuenta });
 
     // Formulario abierto sin cuenta: le pone el campo trampa y pide el sello
     // al servidor desde ya. Ver H.prepararFormularioPublico en api.js.
@@ -368,9 +372,8 @@
       if (nombre.length < 2) {
         return H.mostrarError(caja, new Error('Escribe tu nombre completo.'));
       }
-      if (password.length < 8 || !/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(password) || !/\d/.test(password)) {
-        return H.mostrarError(caja, new Error('La contraseña debe tener al menos 8 caracteres, con una letra y un número.'));
-      }
+      const problema = H.password.validar(password, datosCuenta());
+      if (problema) return H.mostrarError(caja, new Error(problema));
       if (password !== password2) {
         return H.mostrarError(caja, new Error('Las contraseñas no coinciden.'));
       }
@@ -437,6 +440,7 @@
     const formCambiar = $('#formRestablecer');
     const caja = $('#errorRecuperar');
     const aviso = $('#avisoRecuperar');
+    H.password.adjuntar(formCambiar.nueva, { confirmar: formCambiar.nueva2 });
 
     /** Deja la pantalla lista para escribir la contraseña nueva. */
     function pedirNueva(token) {
@@ -510,9 +514,8 @@
       H.limpiarError(caja);
 
       const nueva = formCambiar.nueva.value;
-      if (nueva.length < 8 || !/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(nueva) || !/\d/.test(nueva)) {
-        return H.mostrarError(caja, new Error('La contraseña debe tener al menos 8 caracteres, con una letra y un número.'));
-      }
+      const problema = H.password.validar(nueva);
+      if (problema) return H.mostrarError(caja, new Error(problema));
       if (nueva !== formCambiar.nueva2.value) {
         return H.mostrarError(caja, new Error('Las contraseñas no coinciden.'));
       }

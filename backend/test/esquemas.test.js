@@ -26,7 +26,7 @@ test('el registro normaliza el correo y recorta los espacios del nombre', () => 
     nombre: '  Daniela Ríos  ',
     email: '  Daniela@Correo.COM ',
     telefono: '300 123 4567',
-    password: 'Cliente123',
+    password: 'Cliente#123',
   });
 
   assert.equal(resultado.nombre, 'Daniela Ríos');
@@ -34,7 +34,7 @@ test('el registro normaliza el correo y recorta los espacios del nombre', () => 
 });
 
 test('el registro rechaza correos mal escritos', () => {
-  const base = { nombre: 'Daniela', telefono: null, password: 'Cliente123' };
+  const base = { nombre: 'Daniela', telefono: null, password: 'Cliente#123' };
 
   assert.equal(acepta(esquemas.registro, { ...base, email: 'daniela@correo.com' }), true);
   assert.equal(acepta(esquemas.registro, { ...base, email: 'daniela' }), false);
@@ -42,20 +42,60 @@ test('el registro rechaza correos mal escritos', () => {
   assert.equal(acepta(esquemas.registro, { ...base, email: '' }), false);
 });
 
-test('la contraseña exige ocho caracteres con letra y número', () => {
+test('la contraseña exige mayúscula, minúscula, número y carácter especial', () => {
   const con = (password) => acepta(esquemas.registro, {
     nombre: 'Daniela', email: 'daniela@correo.com', telefono: null, password,
   });
 
-  assert.equal(con('Cliente123'), true);
-  assert.equal(con('Corto1'), false, 'menos de 8 caracteres');
-  assert.equal(con('solotexto'), false, 'sin ningún número');
-  assert.equal(con('12345678'), false, 'sin ninguna letra');
+  assert.equal(con('Cliente#123'), true);
+  assert.equal(con('Ñandú.2026'), true, 'las letras con tilde y la ñ cuentan');
+  assert.equal(con('Cl#1'), false, 'menos de 8 caracteres');
+  assert.equal(con('Cliente123'), false, 'sin carácter especial');
+  assert.equal(con('Cliente#abc'), false, 'sin ningún número');
+  assert.equal(con('cliente#123'), false, 'sin mayúscula');
+  assert.equal(con('CLIENTE#123'), false, 'sin minúscula');
+  assert.equal(con('12345678#!'), false, 'sin ninguna letra');
+});
+
+test('el mensaje de la contraseña junta todo lo que falta', () => {
+  const r = esquemas.cambioPassword.safeParse({ actual: 'x', nueva: 'cliente' });
+  const mensaje = r.error.issues.map((i) => i.message).join(' ');
+
+  assert.match(mensaje, /mayúscula/);
+  assert.match(mensaje, /número/);
+  assert.match(mensaje, /carácter especial/);
+});
+
+test('la contraseña rechaza las predecibles aunque cumplan las reglas', () => {
+  const con = (nueva) => acepta(esquemas.cambioPassword, { actual: 'Otra#Clave9', nueva });
+
+  assert.equal(con('Huellitas2026!'), false, 'el nombre de la clínica con cifras detrás');
+  assert.equal(con('#1Password'), false, 'palabra común con adornos delante');
+  assert.equal(con('MisHuellitas#1'), false, 'el nombre de la clínica escondido');
+  assert.equal(con('Aaaa1111!'), false, 'cuatro teclas iguales seguidas');
+});
+
+test('la contraseña no pasa de 72 bytes, que es lo que mira bcrypt', () => {
+  const con = (nueva) => acepta(esquemas.cambioPassword, { actual: 'Otra#Clave9', nueva });
+
+  assert.equal(con(`Ab#1${'xy'.repeat(34)}`), true, '72 caracteres ASCII');
+  assert.equal(con(`Ab#1${'ñé'.repeat(20)}`), false, 'pocos caracteres pero más de 72 bytes');
+});
+
+test('la contraseña no puede repetir el nombre ni el correo de la cuenta', () => {
+  const con = (password) => acepta(esquemas.registro, {
+    nombre: 'Daniela Ríos', email: 'drios84@correo.com', telefono: null, password,
+  });
+
+  assert.equal(con('Daniela#2026'), false, 'el nombre');
+  assert.equal(con('Mi.drios84!X'), false, 'el usuario del correo');
+  assert.equal(con('Rios#Perro9'), false, 'el apellido sin tilde también cuenta');
+  assert.equal(con('Lluvia#Gris7'), true);
 });
 
 test('el teléfono acepta los signos de un número real y rechaza letras', () => {
   const con = (telefono) => acepta(esquemas.registro, {
-    nombre: 'Daniela', email: 'daniela@correo.com', password: 'Cliente123', telefono,
+    nombre: 'Daniela', email: 'daniela@correo.com', password: 'Cliente#123', telefono,
   });
 
   assert.equal(con('+57 (300) 123-4567'), true);
@@ -64,11 +104,11 @@ test('el teléfono acepta los signos de un número real y rechaza letras', () =>
 
 test('el cambio de contraseña rechaza repetir la actual', () => {
   assert.equal(
-    acepta(esquemas.cambioPassword, { actual: 'Cliente123', nueva: 'Cliente456' }),
+    acepta(esquemas.cambioPassword, { actual: 'Cliente#123', nueva: 'Cliente#456' }),
     true
   );
   assert.equal(
-    acepta(esquemas.cambioPassword, { actual: 'Cliente123', nueva: 'Cliente123' }),
+    acepta(esquemas.cambioPassword, { actual: 'Cliente#123', nueva: 'Cliente#123' }),
     false
   );
 });

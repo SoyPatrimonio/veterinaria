@@ -244,6 +244,27 @@ Si tu base ya estaba cargada antes de este cambio, ejecuta
 las tablas del segundo factor, pone la marca en las siete cuentas y cierra las
 sesiones abiertas.
 
+### Política de contraseñas
+
+Toda contraseña nueva —registro, alta desde el panel, cambio y recuperación—
+debe tener:
+
+- al menos 8 caracteres (y no más de 72 bytes, el límite de bcrypt);
+- una letra minúscula y una mayúscula (cuentan la ñ y las tildes);
+- un número;
+- un carácter especial (`! @ # $ % & * . - _` …).
+
+Además se rechazan las predecibles aunque cumplan lo anterior: el nombre de la
+clínica, palabras comunes con cifras o signos pegados (`Password2026!`), la
+misma tecla repetida (`Aaaa1111!`) y las que contienen el nombre o el correo de
+la propia cuenta.
+
+Las reglas viven en `backend/src/utils/politicaPassword.js`; el navegador las
+repite en `frontend/js/password.js` para mostrar, mientras se escribe, una
+lista de requisitos, un medidor de seguridad y el botón de mostrar/ocultar. En
+los formularios de alta de la administración hay además un generador de
+contraseñas aleatorias. Si cambias una regla, cámbiala en los dos archivos.
+
 ### Verificación en dos pasos
 
 La administración no puede entrar sin segundo factor. Se configura desde
