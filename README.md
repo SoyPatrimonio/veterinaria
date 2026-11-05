@@ -327,6 +327,23 @@ Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramienta
   o mg/kg/h, con o sin bolsa de fluidos) y goteo. No trae dosis precargadas:
   solo hace la aritmética con lo que escribe el veterinario y avisa de pesos
   imposibles o volúmenes que no se pueden medir.
+- **Ordenar y filtrar tablas** — clic (o Enter) en un encabezado ordena por
+  esa columna; los montos en pesos, los pesos en kg y las fechas se ordenan por
+  su valor, y el texto como en español. *Filtrar en la tabla* esconde lo que no
+  coincide, sin tildes ni mayúsculas, y *Exportar a Excel* baja solo lo
+  filtrado. Filtro y orden se conservan cuando la página recarga sus datos. Las
+  tablas de más de 15 filas se desplazan en su caja con el encabezado fijo.
+- **Cambios sin guardar** — salir de la página con un alta o una edición a
+  medio escribir (o un texto largo en un formulario) pide confirmación. Los
+  filtros y buscadores no cuentan.
+- **Contador de caracteres** en los textos con límite, que avisa cerca del tope.
+- **Red más tolerante** — una barra fina arriba indica que algo está cargando;
+  una lectura que falla por un corte de red se reintenta sola una vez (las
+  escrituras nunca, para no duplicar una cita o un pago); y cuando se publica
+  una versión nueva del sitio aparece *Recargar*.
+- **Atajos** — `?` muestra la ayuda de atajos; **volver arriba** en páginas
+  largas; página **404** propia (Vercel la sirve sola; Express la lee al
+  arrancar).
 - **Tamaño de letra** — paleta → *Letra más grande* (normal, grande, muy
   grande). Se recuerda en el navegador.
 - **Imprimir** — paleta → *Imprimir esta página*: sin menú ni botones y en

@@ -274,6 +274,45 @@
     }
   }
 
+  const ESPERA_REINTENTO_MS = 800;
+
+  /**
+   * Barra fina arriba mientras hay peticiones en curso.
+   *
+   * Solo aparece si la espera pasa de un cuarto de segundo: lo que responde
+   * al instante no tiene por qué parpadear. Cuenta las peticiones en vuelo,
+   * así que varias a la vez se ven como una sola carga.
+   */
+  const progreso = (() => {
+    let enVuelo = 0;
+    let temporizador = null;
+    let barra = null;
+    const mostrar = (visible) => {
+      if (!document.body) return;
+      if (!barra) {
+        barra = document.createElement('div');
+        barra.className = 'barra-progreso';
+        barra.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(barra);
+      }
+      barra.classList.toggle('activa', visible);
+      document.documentElement.toggleAttribute('aria-busy', visible);
+    };
+    return {
+      empieza() {
+        enVuelo += 1;
+        if (enVuelo === 1) temporizador = setTimeout(() => mostrar(true), 250);
+      },
+      termina() {
+        enVuelo = Math.max(0, enVuelo - 1);
+        if (enVuelo === 0) {
+          clearTimeout(temporizador);
+          mostrar(false);
+        }
+      },
+    };
+  })();
+
   // El parámetro se llama `camino` y no `ruta` a propósito: si se llamara igual
   // que la función ruta() de arriba la taparía, y al querer redirigir al login
   // se estaría llamando a un texto en vez de a la función.
@@ -291,15 +330,26 @@
     }
 
     let respuesta;
+    progreso.empieza();
     try {
       respuesta = await fetch(BASE + camino, { method: metodo, headers: cabeceras, body: payload });
     } catch (error) {
+      // Una lectura se puede repetir sin riesgo: en el teléfono, un corte de
+      // un segundo al cambiar de wifi a datos no tiene por qué ser un error en
+      // pantalla. Una escritura (POST, PUT…) no se repite nunca sola: si la
+      // primera sí llegó al servidor, la cita o el pago quedarían dobles.
+      if (metodo === 'GET' && !opciones.yaReintentada) {
+        await new Promise((r) => setTimeout(r, ESPERA_REINTENTO_MS));
+        return peticion(metodo, camino, cuerpo, { ...opciones, yaReintentada: true });
+      }
       throw new ErrorApi(
-        'No se pudo conectar con el servidor. ¿Está encendido el backend?',
+        'No se pudo conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.',
         0,
         null,
         error
       );
+    } finally {
+      progreso.termina();
     }
 
     if (token && respuesta.status !== 401) anotarPeticion();
@@ -652,12 +702,35 @@
   const contextoSeguro = global.isSecureContext || ['localhost', '127.0.0.1'].includes(location.hostname);
   if ('serviceWorker' in navigator && contextoSeguro && location.protocol !== 'file:') {
     global.addEventListener('load', () => {
+      // Si la página ya estaba bajo un service worker y llega otro, es una
+      // versión nueva del sitio: se avisa para recargar en vez de dejar a
+      // alguien media jornada con pantallas viejas. La primera instalación
+      // no avisa (no había versión anterior).
+      const habiaVersion = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (habiaVersion) avisarVersionNueva();
+      });
       navigator.serviceWorker.register(ruta('sw.js')).catch((error) => {
         // La app sigue funcionando igual sin él: solo se pierde el modo
         // sin conexión y la instalación.
         console.warn('[app] no se pudo registrar el service worker:', error);
       });
     });
+  }
+
+  function avisarVersionNueva() {
+    if (document.querySelector('.aviso-version')) return;
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso-version';
+    aviso.setAttribute('role', 'status');
+    aviso.innerHTML = '<span>Hay una versión nueva de Huellitas.</span>';
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'btn btn-primary btn-sm';
+    boton.textContent = 'Recargar';
+    boton.addEventListener('click', () => location.reload());
+    aviso.appendChild(boton);
+    document.body.appendChild(aviso);
   }
 
   global.Huella = {

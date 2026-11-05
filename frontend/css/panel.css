@@ -1517,7 +1517,7 @@ select{ background-color: var(--surface); color: var(--ink); }
 /* ------------------------------------------------------------
    Exportar tablas (panel-herramientas.js)
    ------------------------------------------------------------ */
-.tabla-herramientas{ display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.tabla-herramientas{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 
 /* ------------------------------------------------------------
    Calculadora clínica (calculadora-clinica.js)
@@ -1562,6 +1562,76 @@ select{ background-color: var(--surface); color: var(--ink); }
   .contenido{ padding: 0 !important; max-width: none !important; }
   .tarjeta{ break-inside: avoid; border: 1px solid #ccc !important; }
   table.tabla{ min-width: 0 !important; }
-  .tabla-envoltura{ overflow: visible !important; }
+  .tabla-envoltura{ overflow: visible !important; max-height: none !important; }
+  table.tabla th{ position: static !important; }
   a[href]{ text-decoration: none; color: inherit; }
+}
+
+/* ------------------------------------------------------------
+   Tablas: filtro, orden y encabezado fijo (panel-herramientas.js)
+   ------------------------------------------------------------ */
+.tabla-filtro{
+  display: flex; align-items: center; gap: 8px; flex: 1 1 220px; max-width: 360px;
+  padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px;
+  background: var(--surface); color: var(--muted-2);
+}
+.tabla-filtro:focus-within{ border-color: var(--moss); box-shadow: 0 0 0 3px var(--moss-tint); }
+.tabla-filtro input{
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  padding: 8px 0; font: inherit; font-size: 0.86rem; color: var(--ink);
+}
+.tabla-filtro small{ font-family: var(--font-data); font-size: 0.72rem; white-space: nowrap; }
+
+th.th-ordenable{ cursor: pointer; user-select: none; }
+th.th-ordenable:hover, th.th-ordenable:focus-visible{ color: var(--acento-texto); }
+th.th-ordenable:focus-visible{ outline: 2px solid var(--moss); outline-offset: -2px; }
+th.th-ordenable::after{ content: '↕'; margin-left: 6px; opacity: .35; }
+th[aria-sort="ascending"]::after{ content: '↑'; opacity: 1; }
+th[aria-sort="descending"]::after{ content: '↓'; opacity: 1; }
+
+.tabla-envoltura.tabla-larga{ max-height: min(70vh, 720px); overflow: auto; }
+.tabla-larga table.tabla th{ position: sticky; top: 0; z-index: 1; background: var(--surface); padding-top: 10px; }
+
+/* ------------------------------------------------------------
+   Formularios, navegación y red
+   ------------------------------------------------------------ */
+.contador-texto{ display: block; text-align: right; font-family: var(--font-data); font-size: 0.7rem; color: var(--muted-2); margin-top: 4px; }
+.contador-texto.cerca{ color: var(--aviso); font-weight: 600; }
+
+.volver-arriba{
+  position: fixed; right: 20px; bottom: 84px; z-index: 150;
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); color: var(--acento-texto); font-size: 1.15rem;
+  border: 1px solid var(--border-strong); box-shadow: var(--sombra-m); cursor: pointer;
+}
+.volver-arriba:hover{ background: var(--moss-tint); }
+.volver-arriba:focus-visible{ outline: 2px solid var(--moss); outline-offset: 2px; }
+.volver-arriba[hidden]{ display: none; }
+
+.lista-atajos{ display: grid; gap: 12px; margin: 4px 0 0; }
+.lista-atajos > div{ display: grid; gap: 4px; }
+.lista-atajos dt{ font-size: 0.85rem; color: var(--muted); }
+.lista-atajos dd{ margin: 0; font-size: 0.92rem; }
+
+.barra-progreso{
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 500;
+  pointer-events: none; opacity: 0; transition: opacity .2s var(--ease);
+  background: linear-gradient(90deg, transparent, var(--clay), transparent);
+  background-size: 40% 100%; background-repeat: no-repeat;
+}
+.barra-progreso.activa{ opacity: 1; animation: barra-progreso 1.1s linear infinite; }
+@keyframes barra-progreso{ from{ background-position: -40% 0; } to{ background-position: 140% 0; } }
+
+.aviso-version{
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 260;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 20px; border-radius: 999px;
+  background: var(--toast-bg); color: #fff; font-size: 0.88rem; box-shadow: var(--sombra-l);
+}
+
+@media (prefers-reduced-motion: reduce){
+  .barra-progreso.activa{ animation: none; background: var(--clay); }
+}
+@media print{
+  .volver-arriba, .barra-progreso, .aviso-version, .contador-texto{ display: none !important; }
 }
