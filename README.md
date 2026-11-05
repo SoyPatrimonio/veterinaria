@@ -265,6 +265,30 @@ lista de requisitos, un medidor de seguridad y el botón de mostrar/ocultar. En
 los formularios de alta de la administración hay además un generador de
 contraseñas aleatorias. Si cambias una regla, cámbiala en los dos archivos.
 
+La última comprobación la hace el servidor al cifrarla: si la contraseña
+aparece en filtraciones públicas ([Have I Been Pwned](https://haveibeenpwned.com/Passwords))
+se rechaza, aunque cumpla las reglas (`P@ssw0rd` las cumple y aparece más de
+seis millones de veces). Solo viajan los 5 primeros caracteres de su SHA-1,
+nunca la contraseña. Si el servicio no responde se deja pasar, y se apaga con
+`VERIFICAR_FILTRADAS=0`.
+
+### Herramientas del panel
+
+Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramientas.js`):
+
+- **Paleta de comandos** — `Ctrl K` (`⌘ K` en Mac), `/` o el botón **Ir a…**.
+  Busca entre las secciones que tu rol puede ver, aunque escribas sin tildes o
+  a medias (`fact` → Facturación), y ejecuta acciones: cambiar el tema, abrir
+  la seguridad de la cuenta, cerrar sesión. Al personal clínico también le
+  encuentra **pacientes** por nombre, dueño o microchip y abre su historia.
+- **Modo oscuro** — sigue al sistema operativo; el botón de luna/sol junto a tu
+  nombre lo fija a mano y se recuerda en ese navegador.
+- **Inactividad** — el servidor cierra la sesión tras `SESION_INACTIVIDAD_MIN`
+  minutos sin peticiones. El panel avisa con cuenta atrás dos minutos antes, y
+  mientras haya teclado o ratón renueva la sesión solo, para que nadie pierda
+  una nota larga al guardarla. Al vencer, vuelve al login y, al entrar, a la
+  misma página.
+
 ### Verificación en dos pasos
 
 La administración no puede entrar sin segundo factor. Se configura desde

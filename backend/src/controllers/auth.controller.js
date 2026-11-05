@@ -6,6 +6,7 @@ const usuarioModel = require('../models/usuario.model');
 const seguridad = require('../models/seguridad.model');
 const mfaModel = require('../models/mfa.model');
 const { exigeMfa, debeConfigurarApp } = require('../utils/politicaMfa');
+const { MINUTOS_INACTIVIDAD } = require('../middleware/auth');
 const { esProduccion } = require('../config/env');
 const { consultarUna, enTransaccion } = require('../config/database');
 
@@ -105,6 +106,9 @@ const yo = asyncHandler(async (req, res) => {
     permisos: req.permisos,
     debeCambiarPassword: req.usuario.debe_cambiar_password === 1,
     debeConfigurarMfa: debeConfigurarApp(req.usuario.rol, req.usuario.mfa_activo),
+    // El navegador lo usa para avisar antes de que el servidor cierre la
+    // sesión por inactividad, y para no dejarla caer mientras alguien escribe.
+    inactividadMin: MINUTOS_INACTIVIDAD,
     usuario: authService.usuarioPublico(req.usuario, {
       clienteId: req.usuario.cliente_id,
       veterinarioId: req.usuario.veterinario_id,

@@ -81,6 +81,7 @@
   const CLAVE_TOKEN = 'huellitas_token';
   const CLAVE_USUARIO = 'huellitas_usuario';
   const CLAVE_PERMISOS = 'huellitas_permisos';
+  const CLAVE_ULTIMA_PETICION = 'huellitas_ultima_peticion';
 
   const sesion = {
     guardar(token, usuario, permisos) {
@@ -91,6 +92,9 @@
       // los vuelve a comprobar en cada petición.
       const lista = permisos || (usuario && usuario.permisos) || [];
       localStorage.setItem(CLAVE_PERMISOS, JSON.stringify(lista));
+      // El login acaba de hablar con el servidor: sin esto, la marca de la
+      // sesión anterior haría creer al panel que esta ya está por vencer.
+      anotarPeticion();
     },
     token() {
       return localStorage.getItem(CLAVE_TOKEN);
@@ -119,8 +123,62 @@
       localStorage.removeItem(CLAVE_TOKEN);
       localStorage.removeItem(CLAVE_USUARIO);
       localStorage.removeItem(CLAVE_PERMISOS);
+      localStorage.removeItem(CLAVE_ULTIMA_PETICION);
     },
   };
+
+  /**
+   * Cuándo llegó al servidor la última petición con token.
+   *
+   * El servidor cierra la sesión tras un rato sin peticiones, no sin ratón ni
+   * teclado. El panel compara las dos cosas (vigilarInactividad, en panel.js)
+   * para avisar antes del cierre y para no dejar caer la sesión de quien lleva
+   * media hora escribiendo una nota sin guardar. Va en localStorage y no en
+   * memoria porque las pestañas comparten sesión: lo que se pide en una
+   * mantiene viva la de las otras.
+   */
+  function anotarPeticion() {
+    try { localStorage.setItem(CLAVE_ULTIMA_PETICION, String(Date.now())); } catch { /* sin almacenamiento */ }
+  }
+  function ultimaPeticion() {
+    try { return Number(localStorage.getItem(CLAVE_ULTIMA_PETICION)) || 0; } catch { return 0; }
+  }
+
+  /* --------------------------------------------------------
+     Tema claro / oscuro
+
+     'sistema' sigue al sistema operativo con la media query de
+     panel.css; 'light' y 'dark' se fijan con data-theme en <html>.
+     Se aplica en cuanto carga este archivo, antes que el resto.
+     -------------------------------------------------------- */
+  const CLAVE_TEMA = 'huellitas_tema';
+  const tema = {
+    actual() {
+      try { return localStorage.getItem(CLAVE_TEMA) || 'sistema'; } catch { return 'sistema'; }
+    },
+    aplicar(valor) {
+      if (valor === 'light' || valor === 'dark') document.documentElement.setAttribute('data-theme', valor);
+      else document.documentElement.removeAttribute('data-theme');
+    },
+    elegir(valor) {
+      try {
+        if (valor === 'sistema') localStorage.removeItem(CLAVE_TEMA);
+        else localStorage.setItem(CLAVE_TEMA, valor);
+      } catch { /* sin almacenamiento: vale solo para esta página */ }
+      tema.aplicar(valor);
+      document.dispatchEvent(new CustomEvent('huellitas:tema', { detail: { tema: valor } }));
+    },
+    esOscuro() {
+      const valor = tema.actual();
+      if (valor === 'dark') return true;
+      if (valor === 'light') return false;
+      return global.matchMedia('(prefers-color-scheme: dark)').matches;
+    },
+    alternar() {
+      tema.elegir(tema.esOscuro() ? 'light' : 'dark');
+    },
+  };
+  tema.aplicar(tema.actual());
 
   /**
    * ¿La sesión tiene alguno de estos permisos?
@@ -207,6 +265,8 @@
         error
       );
     }
+
+    if (token && respuesta.status !== 401) anotarPeticion();
 
     let datos = null;
     const tipo = respuesta.headers.get('content-type') || '';
@@ -497,6 +557,8 @@
   global.Huella = {
     api,
     sesion,
+    tema,
+    ultimaPeticion,
     ErrorApi,
     exigirSesion,
     puede,

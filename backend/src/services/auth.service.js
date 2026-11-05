@@ -14,6 +14,7 @@ const mfa = require('../models/mfa.model');
 const totp = require('../utils/totp');
 const correo = require('./correo.service');
 const politicaPassword = require('../utils/politicaPassword');
+const passwordFiltrada = require('./passwordFiltrada.service');
 
 // bcryptjs es JavaScript puro: 10 rondas da un buen equilibrio entre coste de
 // login y resistencia a fuerza bruta en esta máquina.
@@ -84,7 +85,18 @@ const MINUTOS_CODIGOS = 15;
 // distintas.
 const { codigoPorCorreo, debeConfigurarApp } = require('../utils/politicaMfa');
 
+/**
+ * Cifra una contraseña NUEVA: registro, altas desde el panel, cambio y
+ * recuperación son los únicos que llaman aquí. Por eso es el sitio de la
+ * última comprobación, la que no cabe en el esquema porque sale a la red:
+ * que no esté en filtraciones públicas (ver passwordFiltrada.service.js).
+ */
 async function hashear(password) {
+  if (await passwordFiltrada.estaFiltrada(password)) {
+    throw ApiError.badRequest(
+      'Esa contraseña aparece en filtraciones de datos públicas y es de las primeras que se prueban en un ataque. Elige otra.'
+    );
+  }
   return bcrypt.hash(password, RONDAS);
 }
 

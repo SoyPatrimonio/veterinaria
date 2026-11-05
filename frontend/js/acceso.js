@@ -230,6 +230,12 @@
     const boton = $('#btnEntrar');
     H.password.conOjo(form.password);
 
+    // Viene del cierre por inactividad del panel (panel-herramientas.js): sin
+    // explicación, aparecer en el login de golpe parece un fallo.
+    if (new URLSearchParams(location.search).get('motivo') === 'inactividad') {
+      H.toast('Tu sesión se cerró por inactividad. Entra de nuevo para seguir donde estabas.', 'info');
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       H.limpiarError(caja);
