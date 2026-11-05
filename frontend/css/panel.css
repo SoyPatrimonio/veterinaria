@@ -1483,3 +1483,27 @@ body.paleta-abierta{ overflow: hidden; }
 /* Los filtros sueltos llevan el borde en línea pero no el fondo: sin esto,
    en oscuro el navegador los pinta con su gris por defecto. */
 select{ background-color: var(--surface); color: var(--ink); }
+
+/* Grupo de botones a la derecha del título de la página. */
+.cabecera-acciones{ display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* Documentos en PDF de la ficha de la mascota (historia-ui.js). */
+.documentos-mascota{
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-dash);
+}
+.documentos-mascota > span{
+  font-family: var(--font-data); font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted-2); margin-right: 4px;
+}
+
+/* Sin conexión (panel-herramientas.js). Arriba y no abajo: abajo la tapa
+   el aviso global y en el teléfono la barra del navegador. */
+.franja-conexion{
+  position: fixed; top: 0; left: 0; right: 0; z-index: 250;
+  padding: 9px 16px; text-align: center;
+  background: #93600F; color: #fff;
+  font-size: 0.86rem; font-weight: 600;
+  box-shadow: var(--sombra-m);
+}
+.franja-conexion[hidden]{ display: none; }

@@ -91,7 +91,8 @@
       ${metrica('icon-micro', historia.examenes.length, 'Exámenes')}
       ${metrica('icon-grafica', ultimoPeso ? `${ultimoPeso} kg` : '—', 'Último peso')}
       ${proxima ? metricaRefuerzo(proxima) : ''}
-    </div>`;
+    </div>
+    ${H.botonesDocumentos(m)}`;
   }
 
   function metrica(icono, valor, texto, clase = '') {

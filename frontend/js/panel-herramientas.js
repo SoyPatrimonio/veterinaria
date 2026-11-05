@@ -102,6 +102,12 @@
         ejecutar: () => H.abrirMiSeguridad(),
       },
       {
+        id: 'accion:instalar', grupo: 'Acciones', icono: 'icon-mas', claves: 'app instalar escritorio celular telefono',
+        titulo: 'Instalar la app', detalle: 'Ábrela desde tu escritorio o pantalla de inicio',
+        disponible: () => H.app.puedeInstalar(),
+        ejecutar: () => H.app.instalar(),
+      },
+      {
         id: 'accion:salir', grupo: 'Acciones', icono: 'icon-salir', claves: 'salir logout cerrar',
         titulo: 'Cerrar sesión', detalle: usuario.email,
         ejecutar: () => H.cerrarSesion(),
@@ -112,7 +118,7 @@
   }
 
   function montarPaleta(usuario, menu) {
-    const entradas = armarEntradas(usuario, menu);
+    const todas = armarEntradas(usuario, menu);
     const buscaPacientes = usuario.rol !== 'cliente' && H.puede('mascotas.ver_todas') && H.puede('historia.ver_todas');
 
     const fondo = document.createElement('div');
@@ -159,6 +165,9 @@
 
     function pintar() {
       const consulta = campo.value.trim();
+      // Algunas acciones dependen del momento (instalar solo cuando el
+      // navegador lo permite).
+      const entradas = todas.filter((e) => !e.disponible || e.disponible());
       let candidatas;
 
       if (!consulta) {
@@ -465,6 +474,77 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) revisar(); });
   }
 
+  /* --------------------------------------------------------
+     Descargas protegidas
+
+     Cualquier botón con data-descargar="/ruta/de/la/api" baja el
+     archivo con la sesión (PDF, calendario…), y data-archivo le da
+     nombre. Delegado en el documento para que sirva también en las
+     tarjetas que las páginas pintan después de cargar.
+     -------------------------------------------------------- */
+  function conectarDescargas() {
+    document.addEventListener('click', async (e) => {
+      const boton = e.target.closest('[data-descargar]');
+      if (!boton) return;
+      e.preventDefault();
+      await H.conBoton(boton, boton.dataset.cargando || 'Preparando…', async () => {
+        try {
+          await H.api.descargar(boton.dataset.descargar, boton.dataset.archivo || 'archivo');
+          if (boton.dataset.listo) H.toast(boton.dataset.listo, 'ok');
+        } catch (error) {
+          H.toast(error.message, 'error');
+        }
+      });
+    });
+  }
+
+  /* --------------------------------------------------------
+     App instalable y conexión
+     -------------------------------------------------------- */
+
+  /** "Instalar app" en el pie de la barra, solo cuando se puede. */
+  function botonInstalar() {
+    const seguridad = document.getElementById('btnMiSeguridad');
+    if (!seguridad || H.app.instalada()) return;
+
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'btn-salir btn-instalar';
+    boton.id = 'btnInstalar';
+    boton.hidden = !H.app.puedeInstalar();
+    boton.innerHTML = '<svg class="icon"><use href="#icon-mas"/></svg> Instalar la app';
+    seguridad.before(boton);
+
+    boton.addEventListener('click', async () => {
+      if (await H.app.instalar()) H.toast('¡Listo! Ya puedes abrir Huellitas desde tu escritorio o tu teléfono.', 'ok');
+      boton.hidden = !H.app.puedeInstalar();
+    });
+    document.addEventListener('huellitas:instalable', () => { boton.hidden = false; });
+    document.addEventListener('huellitas:instalada', () => { boton.hidden = true; });
+  }
+
+  /**
+   * Franja de "sin conexión".
+   *
+   * Sin ella, lo primero que se ve al perder la red es un error al guardar.
+   * Avisarlo antes evita escribir una nota entera que luego no se puede
+   * enviar.
+   */
+  function avisoConexion() {
+    const franja = document.createElement('div');
+    franja.className = 'franja-conexion';
+    franja.setAttribute('role', 'status');
+    franja.hidden = navigator.onLine;
+    franja.textContent = 'Sin conexión. Lo que hagas no se guardará hasta que vuelva internet.';
+    document.body.appendChild(franja);
+
+    global.addEventListener('offline', () => { franja.hidden = false; });
+    global.addEventListener('online', () => {
+      franja.hidden = true;
+      H.toast('Conexión recuperada.', 'ok');
+    });
+  }
+
   /* -------------------------------------------------------- */
 
   let montado = false;
@@ -473,6 +553,9 @@
     montado = true;
     montarPaleta(usuario, menu || []);
     vigilarInactividad();
+    conectarDescargas();
+    botonInstalar();
+    avisoConexion();
   }
 
   H.herramientas = { montar, puntuar };

@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A2620">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../iconos/apple-touch-icon.png">
 <title>Citas — Administración</title>
 <link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +26,12 @@
         <h1>Citas de la clínica</h1>
         <p>Filtra por rango de fechas, veterinario o estado.</p>
       </div>
+      <button type="button" class="btn btn-outline" data-descargar="/citas/calendario.ics"
+                data-archivo="agenda-clinica-huellitas.ics" data-cargando="Preparando…"
+                data-listo="Listo: abre el archivo para añadir las citas a tu calendario."
+                title="Google Calendar, Apple Calendar u Outlook, con recordatorios">
+          <svg class="icon"><use href="#icon-calendar"/></svg> Exportar al calendario
+        </button>
     </header>
 
     <section class="tarjeta">

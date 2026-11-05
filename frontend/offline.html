@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A2620">
+<title>Sin conexión — Huellitas de Amor</title>
+<link rel="icon" type="image/svg+xml" href="/iconos/app.svg">
+<!-- Rutas absolutas: el service worker sirve esta página en lugar de la que
+     se pidió, así que la dirección del navegador puede ser cualquier otra. -->
+<link rel="stylesheet" href="/css/panel.css">
+<style>
+  .sin-red{ min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; text-align: center; }
+  .sin-red-caja{ max-width: 420px; }
+  .sin-red img{ width: 84px; height: 84px; border-radius: 22px; margin: 0 auto 22px; box-shadow: var(--sombra-m); }
+  .sin-red h1{ font-size: 1.6rem; margin-bottom: 10px; }
+  .sin-red p{ color: var(--muted); margin-bottom: 22px; }
+</style>
+</head>
+<body>
+<main class="sin-red">
+  <div class="sin-red-caja">
+    <img src="/iconos/app.svg" alt="">
+    <h1>Sin conexión</h1>
+    <p>No hay internet en este momento. La información de las mascotas no se
+       guarda en el dispositivo, así que hace falta conexión para verla.
+       Cuando vuelva, recarga la página.</p>
+    <a class="btn btn-primary" href="">Reintentar</a>
+  </div>
+</main>
+</body>
+</html>

@@ -268,6 +268,10 @@
 
     if (token && respuesta.status !== 401) anotarPeticion();
 
+    // Archivos (PDF, calendario): el cuerpo es el archivo, no JSON. Si falló,
+    // el servidor manda JSON con el motivo y se sigue por el camino normal.
+    if (opciones.binario && respuesta.ok) return respuesta.blob();
+
     let datos = null;
     const tipo = respuesta.headers.get('content-type') || '';
     if (tipo.includes('application/json')) {
@@ -312,8 +316,28 @@
     return partes.length ? `?${partes.join('&')}` : '';
   }
 
+  /**
+   * Descarga un archivo protegido (PDF, calendario…).
+   *
+   * Un <a href> directo no sirve: el navegador no manda el token en esa
+   * petición. Se pide con fetch como cualquier otra llamada y se entrega el
+   * resultado como descarga.
+   */
+  async function descargar(camino, nombreArchivo) {
+    const archivo = await peticion('GET', camino, undefined, { binario: true });
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   const api = {
     base: BASE,
+    descargar,
     get: (camino, params, opciones) => peticion('GET', camino + query(params), undefined, opciones),
     post: (camino, cuerpo, opciones) => peticion('POST', camino, cuerpo, opciones),
     put: (camino, cuerpo, opciones) => peticion('PUT', camino, cuerpo, opciones),
@@ -554,10 +578,57 @@
     pedirSello();
   }
 
+  /* --------------------------------------------------------
+     App instalable (manifest.webmanifest + sw.js)
+
+     El navegador avisa con `beforeinstallprompt` cuando la página se
+     puede instalar. En los paneles se guarda ese aviso para ofrecerlo
+     con un botón propio (panel-herramientas.js); en el sitio público
+     se deja el del navegador, que es lo que la gente reconoce.
+     -------------------------------------------------------- */
+  let avisoInstalar = null;
+
+  global.addEventListener('beforeinstallprompt', (evento) => {
+    if (document.getElementById('barraLateral')) evento.preventDefault();
+    avisoInstalar = evento;
+    document.dispatchEvent(new CustomEvent('huellitas:instalable'));
+  });
+  global.addEventListener('appinstalled', () => {
+    avisoInstalar = null;
+    document.dispatchEvent(new CustomEvent('huellitas:instalada'));
+  });
+
+  const app = {
+    puedeInstalar: () => Boolean(avisoInstalar),
+    instalada: () => global.matchMedia('(display-mode: standalone)').matches || global.navigator.standalone === true,
+    /** Abre el diálogo del navegador. Devuelve true si se aceptó. */
+    async instalar() {
+      if (!avisoInstalar) return false;
+      const aviso = avisoInstalar;
+      avisoInstalar = null; // el navegador solo deja usarlo una vez
+      aviso.prompt();
+      const { outcome } = await aviso.userChoice;
+      return outcome === 'accepted';
+    },
+  };
+
+  // Los service workers solo existen en HTTPS o en localhost.
+  const contextoSeguro = global.isSecureContext || ['localhost', '127.0.0.1'].includes(location.hostname);
+  if ('serviceWorker' in navigator && contextoSeguro && location.protocol !== 'file:') {
+    global.addEventListener('load', () => {
+      navigator.serviceWorker.register(ruta('sw.js')).catch((error) => {
+        // La app sigue funcionando igual sin él: solo se pierde el modo
+        // sin conexión y la instalación.
+        console.warn('[app] no se pudo registrar el service worker:', error);
+      });
+    });
+  }
+
   global.Huella = {
     api,
     sesion,
     tema,
+    app,
     ultimaPeticion,
     ErrorApi,
     exigirSesion,

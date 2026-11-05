@@ -63,6 +63,22 @@ El asistente pregunta por la cadena de conexión, las claves de Storage y el
 token de Vercel, prueba cada una contra el servicio real y escribe el `.env`.
 Si prefieres hacerlo a mano, copia `.env.example` a `.env` y rellénalo.
 
+**Ningún dato de la base vive en el código.** La conexión, las claves y el
+proyecto de Supabase salen siempre del `.env` (en local) o de las variables
+de entorno de Vercel. Si usas `npm run aplicar` con el archivo
+`PEGAR-CLAVES-AQUI.txt` (ignorado por Git), ponle también los datos del
+proyecto, que están en **Project Settings → Database → Connection string**
+(modo *Transaction*): en `postgresql://postgres.REF:…@HOST:6543/postgres`,
+
+```
+SUPABASE_REF=REF
+SUPABASE_POOLER_HOST=HOST
+DB_PASSWORD=la contraseña de la base
+```
+
+Si ya tienes un `.env` con `DATABASE_URL`, basta con `DB_PASSWORD`: el script
+saca el proyecto de ahí.
+
 **Dos archivos, no uno.** El token de Vercel no va en el `.env`: va en
 `.env.deploy`, en la raíz, con una sola línea `VERCEL_TOKEN=...`. La razón es
 que el `.env` lo carga también la aplicación
@@ -288,6 +304,36 @@ Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramienta
   mientras haya teclado o ratón renueva la sesión solo, para que nadie pierda
   una nota larga al guardarla. Al vencer, vuelve al login y, al entrar, a la
   misma página.
+- **Citas en el calendario** — *Añadir a mi calendario* (cliente), *Exportar
+  agenda* (veterinario) y *Exportar al calendario* (administración) bajan un
+  `.ics` que abren Google Calendar, Apple Calendar y Outlook, con aviso el día
+  antes y dos horas antes. Cada cita del cliente tiene además su botón. La
+  hora se pasa a UTC con `CLINICA_TZ`, así que sale bien en cualquier
+  teléfono; una cita cancelada, al volver a importarla, reemplaza a la
+  anterior. El evento no lleva datos clínicos más allá del motivo.
+- **Documentos en PDF** — la ficha de cada mascota (cliente y veterinario)
+  ofrece la historia clínica completa y el carné de vacunación. Los genera el
+  servidor, que comprueba el acceso y deja constancia de cada descarga.
+- **Sin conexión** — una franja avisa al perder internet, antes de que algo
+  falle al guardar.
+
+### App instalable
+
+El sitio se puede instalar como aplicación en el teléfono (Android: *Agregar a
+la pantalla de inicio*; iPhone: *Compartir → Agregar a inicio*) y en el
+computador (Chrome/Edge: ícono de instalar en la barra de direcciones, o
+*Instalar la app* en el panel y en la paleta de comandos). Abre en su propia
+ventana, con accesos directos a *Agendar cita*, *Mis citas* y *Mi agenda*.
+
+`frontend/sw.js` guarda la interfaz (HTML, CSS, JS e íconos) para que abra
+rápido y, sin red, muestre la última versión o la página *Sin conexión*.
+**Nunca guarda nada de `/api/`**: historias, facturas y datos personales no
+quedan en el dispositivo. Si cambias su lógica o la lista de precarga, sube el
+número de `CACHE` para que las copias viejas se borren.
+
+Los íconos `frontend/iconos/app-*.png` y `apple-touch-icon.png` salen de
+`frontend/iconos/app.svg`. Si cambias el diseño, exporta de nuevo esos
+tamaños (192, 512, 512 a sangre para *maskable* y 180 para iPhone).
 
 ### Verificación en dos pasos
 
@@ -509,6 +555,8 @@ Base: `/api`. Autenticación con **JWT** en `Authorization: Bearer <token>`.
 | POST | `/citas` | cliente o clínica |
 | PATCH | `/citas/:id/estado` | cliente (solo cancelar) · clínica (todo) |
 | DELETE | `/citas/:id` | atajo de cancelación |
+| GET | `/citas/calendario.ics` | próximas citas según el rol, en formato de calendario |
+| GET | `/citas/:id/calendario.ics` | una cita, en formato de calendario |
 
 ### Historia clínica
 | Método | Ruta | Permiso |

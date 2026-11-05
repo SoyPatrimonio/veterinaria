@@ -93,7 +93,8 @@
         ${metrica('icon-calendar', ultima ? H.fechaLarga(ultima.fecha) : '—', 'Última consulta')}
         ${metrica('icon-grafica', m.peso_kg ? `${m.peso_kg} kg` : '—', 'Peso actual')}
       </div>
-      ${proximo ? avisoRefuerzo(proximo) : ''}`;
+      ${proximo ? avisoRefuerzo(proximo) : ''}
+      ${H.botonesDocumentos(m)}`;
   }
 
   function metrica(icono, valor, texto, clase = '') {

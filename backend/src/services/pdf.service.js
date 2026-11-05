@@ -2,6 +2,7 @@
 
 const PDFDocument = require('pdfkit');
 const { consultarUna, consultar } = require('../config/database');
+const { datosClinica } = require('./clinica.service');
 
 /**
  * Reportes profesionales en PDF.
@@ -29,24 +30,6 @@ function nuevoDocumento(titulo) {
     margin: MARGEN,
     info: { Title: titulo, Author: 'Huellitas de Amor', Creator: 'Sistema Huellitas' },
   });
-}
-
-async function datosClinica() {
-  const filas = await consultar(
-    `SELECT clave, valor FROM configuraciones WHERE clave IN ('clinica.nombre','clinica.nit')`
-  );
-  const mapa = Object.fromEntries(filas.map((f) => [f.clave, f.valor]));
-
-  const sede = await consultarUna(
-    `SELECT nombre, direccion, ciudad, telefono, email FROM sedes
-      WHERE activo = 1 ORDER BY principal DESC LIMIT 1`
-  );
-
-  return {
-    nombre: mapa['clinica.nombre'] || 'Huellitas de Amor',
-    nit: mapa['clinica.nit'] || '',
-    sede: sede || {},
-  };
 }
 
 function membrete(doc, clinica, titulo, subtitulo) {

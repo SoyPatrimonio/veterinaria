@@ -313,6 +313,27 @@
     });
   }
 
+  /**
+   * Botones de los documentos de la mascota en PDF: la historia clínica
+   * completa y el carné de vacunación, que es el que piden en guarderías,
+   * viajes y peluquerías. Los genera el servidor (reportes-pdf.routes.js),
+   * que comprueba que quien los pide puede verlos y deja constancia.
+   */
+  function botonesDocumentos(mascota) {
+    const nombre = String(mascota.nombre || 'mascota').toLowerCase().normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const boton = (ruta, archivo, icono, texto) => `
+      <button type="button" class="btn btn-outline btn-sm" data-descargar="${ruta}"
+              data-archivo="${archivo}" data-cargando="Generando PDF…">
+        <svg class="icon"><use href="#${icono}"/></svg> ${texto}
+      </button>`;
+    return `<div class="documentos-mascota">
+      <span>Documentos en PDF</span>
+      ${boton(`/reportes/pdf/historia/${mascota.id}`, `historia-clinica-${nombre}.pdf`, 'icon-carpeta', 'Historia clínica')}
+      ${boton(`/reportes/pdf/vacunacion/${mascota.id}`, `carne-vacunacion-${nombre}.pdf`, 'icon-syringe', 'Carné de vacunación')}
+    </div>`;
+  }
+
   function recortar(texto, largo) {
     const limpio = String(texto || '');
     return limpio.length > largo ? `${limpio.slice(0, largo)}…` : limpio;
@@ -329,5 +350,6 @@
     listaExamenes,
     antecedentes,
     curvaPeso,
+    botonesDocumentos,
   });
 })(window);

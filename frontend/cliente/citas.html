@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A2620">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../iconos/apple-touch-icon.png">
 <title>Mis citas — Huellitas de Amor</title>
 <link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,9 +26,17 @@
         <h1>Mis citas</h1>
         <p>Consulta el estado de cada cita y cancela con anticipación si no puedes asistir.</p>
       </div>
-      <a href="../cliente/agendar.html" class="btn btn-primary">
-        <svg class="icon"><use href="#icon-mas"/></svg> Nueva cita
-      </a>
+      <div class="cabecera-acciones">
+        <button type="button" class="btn btn-outline" data-descargar="/citas/calendario.ics"
+                data-archivo="mis-citas-huellitas.ics" data-cargando="Preparando…"
+                data-listo="Listo: abre el archivo para añadir las citas a tu calendario."
+                title="Google Calendar, Apple Calendar u Outlook, con recordatorios">
+          <svg class="icon"><use href="#icon-calendar"/></svg> Añadir a mi calendario
+        </button>
+        <a href="../cliente/agendar.html" class="btn btn-primary">
+          <svg class="icon"><use href="#icon-mas"/></svg> Nueva cita
+        </a>
+      </div>
     </header>
 
     <div id="aviso"></div>
