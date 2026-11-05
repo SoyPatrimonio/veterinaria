@@ -506,8 +506,9 @@ siguiente.
 ### 6.2 Pruebas y linter
 
 ```bash
-npm test        # pruebas unitarias
-npm run lint    # revisa todo el proyecto
+npm test                  # pruebas unitarias (menos de 10 s, sin base)
+npm run test:integracion  # la API real contra un PostgreSQL real (unos 15 s)
+npm run lint              # revisa todo el proyecto
 npm run lint:fix
 ```
 
@@ -525,6 +526,20 @@ Están cubiertas las piezas donde un error no se ve venir:
 | `esquemas.test.js` | Que la validación de entradas siga rechazando lo que debe rechazar |
 | `agenda.test.js` | Las reglas de reserva: nada en el pasado, fuera de la ventana ni en día cerrado |
 | `errores.test.js` | Que un fallo de PostgreSQL llegue al usuario como un mensaje con sentido y no como un 500 |
+| `politica-password.test.js` | Que el navegador y el servidor acepten y rechacen las mismas contraseñas |
+| `calendario.test.js` | Hora en UTC, escapes y cortes de línea del `.ics`, y qué ve cada rol |
+| `calculadora-clinica.test.js` | Cada fórmula de dosis, infusión y goteo contra la cuenta hecha a mano |
+| `exportar-tablas.test.js` | CSV para Excel sin fórmulas inyectadas; orden de montos, kg y fechas |
+| `pdf.test.js` | Que el pie numerado no agregue hojas en blanco |
+
+**Pruebas de integración** (`backend/test-integracion/`). Levantan un
+PostgreSQL en memoria con [PGlite](https://pglite.dev) —el motor de PostgreSQL
+compilado para Node, sin instalar nada—, le cargan `schema.sql` y `seed.sql`
+con el mismo `setup-db.js`, arrancan la aplicación y la recorren: cuentas del
+seed, cambio de contraseña con la política, segundo factor con TOTP real,
+altas, calendario, PDFs, permisos entre clientes y registro público. No tocan
+Supabase ni necesitan internet, así que sirven en CI. Al terminar no queda
+nada: la base vive solo mientras corren.
 
 El linter está configurado en `eslint.config.js` con las reglas que atrapan
 errores de verdad, no las de estilo. La más importante es `no-empty` sin

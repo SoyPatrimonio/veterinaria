@@ -127,19 +127,30 @@ function tabla(doc, columnas, filas) {
   });
 }
 
-/** Pie con la fecha de emisión y quién lo sacó. Va en todas las páginas. */
+/**
+ * Pie con la fecha de emisión y quién lo sacó. Va en todas las páginas.
+ *
+ * Se escribe dentro del margen inferior, y pdfkit, al ver texto por debajo
+ * del margen, abre una página nueva para "hacerle sitio": cada documento
+ * salía con una hoja en blanco al final que solo tenía el pie. Por eso el
+ * margen se quita mientras se escribe y se devuelve después, y la línea no
+ * puede partirse.
+ */
 function pie(doc, generadoPor) {
   const paginas = doc.bufferedPageRange();
   const emitido = new Date().toLocaleString('es-CO');
 
   for (let i = 0; i < paginas.count; i += 1) {
     doc.switchToPage(paginas.start + i);
+    const margenInferior = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
     doc.fillColor(COLOR.gris).font('Helvetica').fontSize(7.5).text(
       `Emitido el ${emitido}${generadoPor ? ` por ${generadoPor}` : ''} · Página ${i + 1} de ${paginas.count}`,
       MARGEN,
       doc.page.height - 42,
-      { width: doc.page.width - MARGEN * 2, align: 'center' }
+      { width: doc.page.width - MARGEN * 2, align: 'center', lineBreak: false }
     );
+    doc.page.margins.bottom = margenInferior;
   }
 }
 
@@ -548,6 +559,9 @@ async function informeHospitalizacion(hospitalizacionId, generadoPor) {
 }
 
 module.exports = {
+  // El armazón (membrete, contenido, pie numerado) para documentos nuevos.
+  generar,
+  tabla,
   historiaClinica,
   certificadoVacunacion,
   formulaMedica,
