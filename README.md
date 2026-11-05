@@ -316,6 +316,21 @@ Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramienta
   servidor, que comprueba el acceso y deja constancia de cada descarga.
 - **Sin conexión** — una franja avisa al perder internet, antes de que algo
   falle al guardar.
+- **Exportar a Excel** — cada tabla del sistema trae el botón *Exportar a
+  Excel*: baja lo que se ve, con los filtros puestos, en un CSV que Excel en
+  español abre bien (punto y coma, tildes). Deja fuera los botones y las notas
+  como "(tú)", y neutraliza los textos que Excel ejecutaría como fórmula
+  (`=`, `+`, `@`…), que aquí escribe el público.
+- **Calculadora clínica** (veterinario y administración; paleta → *dosis*, o el
+  botón *Calculadora* de la historia, que trae el último peso del paciente):
+  dosis por peso (mg, mL y tabletas en cuartos), infusión continua (µg/kg/min
+  o mg/kg/h, con o sin bolsa de fluidos) y goteo. No trae dosis precargadas:
+  solo hace la aritmética con lo que escribe el veterinario y avisa de pesos
+  imposibles o volúmenes que no se pueden medir.
+- **Tamaño de letra** — paleta → *Letra más grande* (normal, grande, muy
+  grande). Se recuerda en el navegador.
+- **Imprimir** — paleta → *Imprimir esta página*: sin menú ni botones y en
+  colores claros aunque se esté usando el modo oscuro.
 
 ### App instalable
 

@@ -102,6 +102,26 @@
         ejecutar: () => H.abrirMiSeguridad(),
       },
       {
+        id: 'accion:calculadora', grupo: 'Herramientas', icono: 'icon-syringe',
+        claves: 'dosis mg kg infusion cri goteo gotas fluidos calcular',
+        titulo: 'Calculadora clínica', detalle: 'Dosis por peso, infusión continua y goteo',
+        disponible: () => Boolean(H.calculadora) && usuario.rol !== 'cliente',
+        ejecutar: () => H.calculadora.abrir(),
+      },
+      {
+        id: 'accion:imprimir', grupo: 'Herramientas', icono: 'icon-recibo', claves: 'imprimir pdf papel print',
+        titulo: 'Imprimir esta página', detalle: 'Sin menú ni botones, en colores claros',
+        ejecutar: () => setTimeout(() => global.print(), 50),
+      },
+      {
+        id: 'accion:letra', grupo: 'Acciones', icono: 'icon-ajustes', claves: 'letra texto tamaño grande zoom leer accesibilidad',
+        get titulo() {
+          return { normal: 'Letra más grande', grande: 'Letra aún más grande', 'muy-grande': 'Letra de tamaño normal' }[H.letra.actual()];
+        },
+        detalle: 'Se recuerda en este navegador',
+        ejecutar: () => H.letra.siguiente(),
+      },
+      {
         id: 'accion:instalar', grupo: 'Acciones', icono: 'icon-mas', claves: 'app instalar escritorio celular telefono',
         titulo: 'Instalar la app', detalle: 'Ábrela desde tu escritorio o pantalla de inicio',
         disponible: () => H.app.puedeInstalar(),
@@ -499,6 +519,124 @@
   }
 
   /* --------------------------------------------------------
+     Exportar tablas a Excel
+
+     Cada tabla del sistema (table.tabla) recibe un botón que la baja
+     como CSV, tal cual se está viendo: con los filtros y la búsqueda
+     que tenga puestos. Se hace en el navegador con lo que ya está en
+     pantalla, así que no exporta nada que la persona no pueda ver.
+     -------------------------------------------------------- */
+
+  /**
+   * Celda segura para Excel.
+   *
+   * Un texto que empieza por = + @ (o - seguido de algo que no es un número)
+   * Excel lo ejecuta como fórmula: un nombre de mascota escrito como
+   * =HYPERLINK(...) por un cliente se convertiría en un enlace activo en el
+   * computador de la clínica. Se antepone un apóstrofo, que Excel muestra
+   * como texto.
+   */
+  function celdaCsv(valor) {
+    let texto = String(valor ?? '').replace(/\s+/g, ' ').trim();
+    if (/^[=+@\t\r]/.test(texto) || /^-(?![\d.,]+$)/.test(texto)) texto = `'${texto}`;
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+
+  /**
+   * Filas → CSV para Excel en español: separador «;» (la coma es el decimal),
+   * BOM para que respete las tildes y saltos CRLF.
+   */
+  function aCsv(filas) {
+    return `﻿${filas.map((fila) => fila.map(celdaCsv).join(';')).join('\r\n')}\r\n`;
+  }
+
+  /** Lo que muestra la tabla, sin la columna de botones ni las filas de "vacío". */
+  function filasDeTabla(tabla) {
+    const cabeceras = [...tabla.querySelectorAll('thead th')].map((th) => th.textContent.replace(/\s+/g, ' ').trim());
+    const columnas = cabeceras.map((t, i) => i).filter((i) => cabeceras[i] && !/^acci(o|ó)n(es)?$/i.test(cabeceras[i]));
+    const cuerpo = [...tabla.querySelectorAll('tbody tr')]
+      .map((tr) => [...tr.children])
+      .filter((celdas) => celdas.length === cabeceras.length)
+      .map((celdas) => columnas.map((i) => textoDeCelda(celdas[i])));
+    return { cabecera: columnas.map((i) => cabeceras[i]), cuerpo };
+  }
+
+  /**
+   * El dato de la celda sin lo que es interfaz: botones, campos y las notas
+   * pequeñas como "(tú)", que en pantalla orientan y en una hoja de cálculo
+   * ensucian la columna. Una celda puede marcar más con data-no-exportar.
+   */
+  function textoDeCelda(celda) {
+    const copia = celda.cloneNode(true);
+    copia.querySelectorAll('button, input, select, textarea, span.campo-ayuda, [data-no-exportar]')
+      .forEach((el) => el.remove());
+    return copia.textContent;
+  }
+
+  function nombreArchivo() {
+    const titulo = (document.querySelector('.contenido-cabecera h1')?.textContent || document.title || 'tabla')
+      .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+    return `${titulo || 'tabla'}-${H.fechaHoyISO ? H.fechaHoyISO() : new Date().toISOString().slice(0, 10)}.csv`;
+  }
+
+  function exportarTabla(tabla) {
+    const { cabecera, cuerpo } = filasDeTabla(tabla);
+    if (!cuerpo.length) {
+      H.toast('No hay filas para exportar con los filtros actuales.', 'aviso');
+      return;
+    }
+    const archivo = new Blob([aCsv([cabecera, ...cuerpo])], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo();
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    H.toast(`${cuerpo.length} ${cuerpo.length === 1 ? 'fila exportada' : 'filas exportadas'}. Ábrelo con Excel.`, 'ok');
+  }
+
+  /**
+   * Pone el botón sobre cada tabla, también sobre las que las páginas pintan
+   * después de cargar. Si la página repinta la tabla dentro del mismo
+   * contenedor, el botón que ya había se reutiliza en vez de duplicarse.
+   */
+  function botonesExportar() {
+    const revisar = () => {
+      document.querySelectorAll('table.tabla:not([data-exportable])').forEach((tabla) => {
+        tabla.dataset.exportable = '1';
+        if (!tabla.querySelector('thead th')) return;
+        const ancla = tabla.closest('.tabla-envoltura') || tabla;
+        if (ancla.previousElementSibling && ancla.previousElementSibling.classList.contains('tabla-herramientas')) return;
+        ancla.insertAdjacentHTML('beforebegin', `
+          <div class="tabla-herramientas">
+            <button type="button" class="btn btn-outline btn-sm" data-exportar-tabla
+                    title="Descarga lo que ves en la tabla, con los filtros actuales">
+              <svg class="icon"><use href="#icon-recibo"/></svg> Exportar a Excel
+            </button>
+          </div>`);
+      });
+    };
+
+    let pendiente = null;
+    new MutationObserver(() => {
+      clearTimeout(pendiente);
+      pendiente = setTimeout(revisar, 120);
+    }).observe(document.body, { childList: true, subtree: true });
+    revisar();
+
+    document.addEventListener('click', (e) => {
+      const boton = e.target.closest('[data-exportar-tabla]');
+      if (!boton) return;
+      const siguiente = boton.closest('.tabla-herramientas').nextElementSibling;
+      const tabla = siguiente && (siguiente.matches('table') ? siguiente : siguiente.querySelector('table.tabla'));
+      if (tabla) exportarTabla(tabla);
+    });
+  }
+
+  /* --------------------------------------------------------
      App instalable y conexión
      -------------------------------------------------------- */
 
@@ -556,7 +694,8 @@
     conectarDescargas();
     botonInstalar();
     avisoConexion();
+    botonesExportar();
   }
 
-  H.herramientas = { montar, puntuar };
+  H.herramientas = { montar, puntuar, aCsv, celdaCsv, filasDeTabla };
 })(window);

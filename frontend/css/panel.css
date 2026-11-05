@@ -1507,3 +1507,61 @@ select{ background-color: var(--surface); color: var(--ink); }
   box-shadow: var(--sombra-m);
 }
 .franja-conexion[hidden]{ display: none; }
+
+/* ------------------------------------------------------------
+   Tamaño de letra (H.letra en api.js). Todo está en rem.
+   ------------------------------------------------------------ */
+:root[data-letra="grande"]{ font-size: 112.5%; }
+:root[data-letra="muy-grande"]{ font-size: 125%; }
+
+/* ------------------------------------------------------------
+   Exportar tablas (panel-herramientas.js)
+   ------------------------------------------------------------ */
+.tabla-herramientas{ display: flex; justify-content: flex-end; margin-bottom: 8px; }
+
+/* ------------------------------------------------------------
+   Calculadora clínica (calculadora-clinica.js)
+   ------------------------------------------------------------ */
+.calculadora .pestanas{ margin-bottom: 16px; }
+.calc-dosis-unidad{ display: flex; gap: 8px; }
+.calc-dosis-unidad input{ flex: 1; min-width: 0; }
+.calc-dosis-unidad select{ width: auto; flex-shrink: 0; }
+.calc-resultado:empty{ display: none; }
+.calc-resultado{
+  margin-top: 4px; padding: 14px 16px;
+  background: var(--moss-tint); border-radius: var(--radius-s);
+}
+.calc-lineas{ display: grid; gap: 6px; }
+.calc-lineas li{ font-size: 0.95rem; }
+.calc-lineas strong{ font-family: var(--font-data); font-size: 1.05rem; color: var(--acento-texto); }
+.calc-aviso{ margin-top: 10px; color: var(--aviso); font-size: 0.85rem; font-weight: 600; }
+.calc-falta{ color: var(--muted); font-size: 0.88rem; }
+
+/* ------------------------------------------------------------
+   Impresión: solo el contenido, en claro, sin botones ni menú.
+   Los tokens van con !important porque el modo oscuro los fija con
+   selectores más específicos (ver el bloque de modo oscuro).
+   ------------------------------------------------------------ */
+@media print{
+  :root{
+    --bg: #fff !important; --surface: #fff !important; --surface-2: #F3F6F4 !important;
+    --ink: #000 !important; --muted: #333 !important; --muted-2: #555 !important;
+    --border: #ccc !important; --border-strong: #999 !important; --border-dash: #bbb !important;
+    --acento-texto: #0F3529 !important; --moss: #1B5B46 !important; --moss-tint: #EDF5F0 !important;
+    --exito: #2F7D53 !important; --aviso: #8A5A06 !important; --error: #A93226 !important; --info: #2F6F9E !important;
+    --clay-texto: #8A5A06 !important;
+    --serie-1: #1B5B46 !important; --serie-3: #2F6F9E !important;
+    --sombra-s: none !important; --sombra-m: none !important; --sombra-l: none !important;
+    color-scheme: light !important;
+  }
+  body{ background: #fff !important; }
+  .barra-lateral, .velo-menu, .abrir-menu, .paleta-fondo, .inactividad-fondo, .franja-conexion,
+  .toast-global, .tabla-herramientas, .documentos-mascota, .cabecera-acciones,
+  .contenido-cabecera > div:last-child:not(:first-child), .btn, .modal-fondo:not(.abierto){ display: none !important; }
+  .panel{ display: block !important; }
+  .contenido{ padding: 0 !important; max-width: none !important; }
+  .tarjeta{ break-inside: avoid; border: 1px solid #ccc !important; }
+  table.tabla{ min-width: 0 !important; }
+  .tabla-envoltura{ overflow: visible !important; }
+  a[href]{ text-decoration: none; color: inherit; }
+}

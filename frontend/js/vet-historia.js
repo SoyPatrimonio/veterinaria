@@ -32,6 +32,7 @@
 
     $('#pestanas').addEventListener('click', cambiarPestana);
     $('#btnNuevaConsulta').addEventListener('click', abrirFormularioConsulta);
+    $('#btnCalculadora').addEventListener('click', () => H.calculadora.abrir({ peso: pesoActual }));
     $('#btnAplicarVacuna').addEventListener('click', abrirFormularioVacuna);
     $('#btnSolicitarExamen').addEventListener('click', () => abrirFormularioExamen(null));
     $('#btnAgregarDiagnostico').addEventListener('click', () => agregarDiagnostico());
@@ -74,6 +75,9 @@
      Pintado
      -------------------------------------------------------- */
 
+  // Lo usa la calculadora para no tener que volver a escribir el peso.
+  let pesoActual = null;
+
   function pintarFicha() {
     const m = historia.mascota;
 
@@ -83,6 +87,7 @@
       `${m.especie}${m.raza ? ` · ${m.raza}` : ''} · ${H.edadLegible(m.edad_meses)} · Dueño: ${m.cliente_nombre}`;
 
     const ultimoPeso = historia.peso.length ? historia.peso[historia.peso.length - 1].peso_kg : m.peso_kg;
+    pesoActual = ultimoPeso || null;
     const proxima = historia.vacunas.find((v) => v.proxima_fecha);
 
     $('#fichaResumen').innerHTML = `<div class="rejilla-metricas">

@@ -180,6 +180,42 @@
   };
   tema.aplicar(tema.actual());
 
+  /* --------------------------------------------------------
+     Tamaño de letra
+
+     Todo panel.css está en rem, así que basta con cambiar la letra
+     base de <html> (data-letra, ver panel.css) para que crezcan
+     textos, campos y botones a la vez, sin romper la maqueta como
+     pasa a veces con el zoom del navegador en el teléfono.
+     -------------------------------------------------------- */
+  const CLAVE_LETRA = 'huellitas_letra';
+  const TAMANOS = ['normal', 'grande', 'muy-grande'];
+  const letra = {
+    actual() {
+      try {
+        const valor = localStorage.getItem(CLAVE_LETRA);
+        return TAMANOS.includes(valor) ? valor : 'normal';
+      } catch { return 'normal'; }
+    },
+    aplicar(valor) {
+      if (valor === 'normal') document.documentElement.removeAttribute('data-letra');
+      else document.documentElement.setAttribute('data-letra', valor);
+    },
+    elegir(valor) {
+      const tamano = TAMANOS.includes(valor) ? valor : 'normal';
+      try {
+        if (tamano === 'normal') localStorage.removeItem(CLAVE_LETRA);
+        else localStorage.setItem(CLAVE_LETRA, tamano);
+      } catch { /* sin almacenamiento: vale solo para esta página */ }
+      letra.aplicar(tamano);
+    },
+    /** normal → grande → muy grande → normal. */
+    siguiente() {
+      letra.elegir(TAMANOS[(TAMANOS.indexOf(letra.actual()) + 1) % TAMANOS.length]);
+    },
+  };
+  letra.aplicar(letra.actual());
+
   /**
    * ¿La sesión tiene alguno de estos permisos?
    * Sirve para ocultar menús y botones que el servidor rechazaría igualmente.
@@ -628,6 +664,7 @@
     api,
     sesion,
     tema,
+    letra,
     app,
     ultimaPeticion,
     ErrorApi,
