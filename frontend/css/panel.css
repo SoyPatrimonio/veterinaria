@@ -1635,3 +1635,43 @@ th[aria-sort="descending"]::after{ content: '↓'; opacity: 1; }
 @media print{
   .volver-arriba, .barra-progreso, .aviso-version, .contador-texto{ display: none !important; }
 }
+
+/* ============================================================
+   Seguridad clínica: alergias, signos fuera de rango y recetas
+   ============================================================ */
+.banda-alergias{
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 16px; padding: 12px 14px;
+  border: 1px solid var(--error); border-left-width: 5px; border-radius: 10px;
+  background: var(--error-bg); color: var(--ink);
+}
+.banda-alergias > .icon{ color: var(--error); flex: none; width: 22px; height: 22px; margin-top: 2px; }
+.banda-alergias h4{ margin: 0 0 4px; font-family: var(--font-body); font-size: .9rem; color: var(--error); }
+.banda-alergias ul{ margin: 0; padding-left: 18px; font-size: .86rem; line-height: 1.45; }
+
+.nota-signo{ display: block; min-height: 1.1em; margin-top: 4px; font-size: .76rem; line-height: 1.3; color: var(--muted); }
+.nota-signo.nota-ok{ color: var(--exito); }
+.nota-signo.nota-aviso{ color: var(--aviso); font-weight: 600; }
+.nota-signo.nota-critico{ color: var(--error); font-weight: 700; }
+input.campo-fuera-rango{ border-color: var(--aviso); box-shadow: 0 0 0 3px var(--aviso-bg); }
+
+.aviso-clinico{
+  display: flex; gap: 8px; align-items: flex-start;
+  margin: 8px 0 0; padding: 8px 10px; border-radius: 8px;
+  font-size: .82rem; line-height: 1.4;
+}
+.aviso-clinico .icon{ flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.aviso-clinico-peligro{ background: var(--error-bg); color: var(--error); font-weight: 600; }
+.aviso-clinico-aviso{ background: var(--aviso-bg); color: var(--aviso); }
+#avisosInteracciones .aviso-clinico{ margin: 0 0 10px; }
+
+.aviso-borrador{
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+  margin: 0 0 14px; padding: 10px 12px; border-radius: 10px;
+  background: var(--aviso-bg); font-size: .86rem;
+}
+.aviso-borrador[hidden]{ display: none; }
+
+@media print{
+  .banda-alergias{ border-color: #000; background: none; }
+}

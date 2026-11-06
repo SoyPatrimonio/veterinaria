@@ -16,10 +16,12 @@
   let historia = null;      // respuesta completa de /historia/mascota/:id
   let catalogos = null;     // vacunas, diagnósticos, medicamentos, exámenes
   let citasSinConsulta = [];
+  let usuarioId = null;     // separa los borradores si dos personas comparten equipo
 
   document.addEventListener('DOMContentLoaded', async () => {
     const usuario = H.montarPanel(['veterinario', 'admin'], ['historia.ver_todas']);
     if (!usuario) return;
+    usuarioId = usuario.id;
 
     if (!mascotaId) {
       $('#fichaResumen').innerHTML = H.bloqueVacio(
@@ -38,10 +40,14 @@
     $('#btnAgregarDiagnostico').addEventListener('click', () => agregarDiagnostico());
     $('#btnAgregarTratamiento').addEventListener('click', () => agregarTratamiento());
     $('#btnAgregarResultado').addEventListener('click', () => agregarResultado());
+    $('#btnDescartarBorrador').addEventListener('click', descartarBorrador);
     $('#formConsulta').addEventListener('submit', guardarConsulta);
     $('#formVacuna').addEventListener('submit', guardarVacuna);
     $('#formExamen').addEventListener('submit', guardarExamen);
     $('#selectVacuna').addEventListener('change', filtrarLotes);
+    prepararAvisosSignos();
+    $('#formConsulta').addEventListener('input', guardarBorrador);
+    $('#formConsulta').addEventListener('change', guardarBorrador);
 
     // Los catálogos no bloquean la historia: si fallan, lo que no se puede es
     // registrar nada nuevo, pero lo ya escrito tiene que poder leerse igual.
@@ -90,7 +96,7 @@
     pesoActual = ultimoPeso || null;
     const proxima = historia.vacunas.find((v) => v.proxima_fecha);
 
-    $('#fichaResumen').innerHTML = `<div class="rejilla-metricas">
+    $('#fichaResumen').innerHTML = `${bandaAlergias()}<div class="rejilla-metricas">
       ${metrica('icon-stetho', historia.consultas.length, 'Consultas')}
       ${metrica('icon-syringe', historia.vacunas.length, 'Vacunas aplicadas')}
       ${metrica('icon-micro', historia.examenes.length, 'Exámenes')}
@@ -98,6 +104,38 @@
       ${proxima ? metricaRefuerzo(proxima) : ''}
     </div>
     ${H.botonesDocumentos(m)}`;
+  }
+
+  /**
+   * Alergias y reacciones a la vista, arriba de todo. En la pestaña de
+   * antecedentes se ven completas, pero quien abre una historia para recetar
+   * no tiene por qué pasar por ahí.
+   */
+  function bandaAlergias() {
+    const alergias = historia.alergias || [];
+    const reacciones = historia.reacciones || [];
+    if (!alergias.length && !reacciones.length) return '';
+
+    const items = [
+      ...alergias.map((a) => `<li><strong>${escapar(a.nombre)}</strong>${a.severidad ? ` · ${escapar(a.severidad)}` : ''}${a.reaccion ? ` — ${escapar(a.reaccion)}` : ''}</li>`),
+      ...reacciones.map((r) => `<li><strong>Reacción a ${escapar(r.medicamento || 'un medicamento')}</strong> · ${escapar(r.severidad)} — ${escapar(r.descripcion)}</li>`),
+    ];
+    return `<div class="banda-alergias" role="note">
+      <svg class="icon"><use href="#icon-alerta"/></svg>
+      <div><h4>Alergias y reacciones</h4><ul>${items.join('')}</ul></div>
+    </div>`;
+  }
+
+  /** Lo que el módulo de seguridad clínica necesita saber del paciente. */
+  function contextoClinico() {
+    const m = historia.mascota;
+    return {
+      especie: m.especie,
+      raza: m.raza,
+      edadMeses: m.edad_meses,
+      alergias: historia.alergias || [],
+      reacciones: historia.reacciones || [],
+    };
   }
 
   function metrica(icono, valor, texto, clase = '') {
@@ -120,6 +158,7 @@
     $('#listaAntecedentes').innerHTML = H.antecedentes({
       alergias: historia.alergias,
       condiciones: historia.condiciones,
+      reacciones: historia.reacciones,
     });
     $('#curvaPeso').innerHTML = H.curvaPeso(historia.peso);
 
@@ -190,9 +229,185 @@
 
     $('#filasDiagnosticos').innerHTML = '';
     $('#filasTratamientos').innerHTML = '';
-    agregarDiagnostico();
 
+    const borrador = leerBorrador();
+    if (borrador) restaurarBorrador(borrador);
+    else agregarDiagnostico();
+    avisoBorrador(Boolean(borrador));
+
+    pintarAvisosSignos();
+    pintarInteracciones();
     H.abrirModal('modalConsulta');
+  }
+
+  /* --------------------------------------------------------
+     Avisos clínicos dentro del formulario
+     -------------------------------------------------------- */
+
+  const CAMPOS_SIGNOS = ['pesoKg', 'temperaturaC', 'condicionCorporal', 'frecCardiaca', 'frecRespiratoria'];
+
+  /** Pone debajo de cada signo vital un renglón para el aviso. Una vez. */
+  function prepararAvisosSignos() {
+    const form = $('#formConsulta');
+    CAMPOS_SIGNOS.forEach((nombre) => {
+      const nota = document.createElement('small');
+      nota.className = 'nota-signo';
+      nota.dataset.nota = nombre;
+      nota.setAttribute('aria-live', 'polite');
+      form[nombre].closest('.campo').appendChild(nota);
+      form[nombre].addEventListener('input', pintarAvisosSignos);
+    });
+  }
+
+  function pintarAvisosSignos() {
+    const form = $('#formConsulta');
+    if (!historia) return;
+    const signos = Object.fromEntries(CAMPOS_SIGNOS.map((n) => [n, form[n].value]));
+    const anterior = historia.peso.length ? historia.peso[historia.peso.length - 1] : null;
+    const evaluacion = H.clinica.evaluarSignos(contextoClinico(), signos, anterior);
+
+    CAMPOS_SIGNOS.forEach((nombre) => {
+      const nota = form.querySelector(`[data-nota="${nombre}"]`);
+      const r = evaluacion[nombre];
+      nota.textContent = r ? r.texto : '';
+      nota.className = `nota-signo${r ? ` nota-${r.nivel}` : ''}`;
+      form[nombre].classList.toggle('campo-fuera-rango', Boolean(r && r.nivel !== 'ok'));
+    });
+  }
+
+  function medicamentoPorId(id) {
+    return (catalogos?.medicamentos || []).find((m) => m.id === Number(id)) || null;
+  }
+
+  function avisosHtml(avisos) {
+    return avisos.map((a) => `<p class="aviso-clinico aviso-clinico-${a.nivel}">
+      <svg class="icon"><use href="#icon-alerta"/></svg><span>${escapar(a.texto)}</span></p>`).join('');
+  }
+
+  /** Avisos de un renglón de receta: alergias, especie, raza. */
+  function pintarAvisosReceta(receta) {
+    const medicamento = medicamentoPorId(receta.querySelector('[data-campo="medicamentoId"]').value);
+    receta.querySelector('[data-avisos]').innerHTML =
+      avisosHtml(H.clinica.revisarMedicamento(medicamento, contextoClinico()));
+    pintarInteracciones();
+  }
+
+  /** Interacciones entre todo lo recetado en la consulta. */
+  function pintarInteracciones() {
+    const recetados = H.$$('[data-receta] [data-campo="medicamentoId"]', $('#filasTratamientos'))
+      .map((s) => medicamentoPorId(s.value))
+      .filter(Boolean);
+    $('#avisosInteracciones').innerHTML = avisosHtml(H.clinica.interacciones(recetados));
+  }
+
+  /** Los avisos graves de toda la receta, para pedir confirmación al guardar. */
+  function peligrosDeLaReceta() {
+    return H.$$('[data-receta] [data-campo="medicamentoId"]', $('#filasTratamientos'))
+      .map((s) => medicamentoPorId(s.value))
+      .filter(Boolean)
+      .flatMap((m) => H.clinica.revisarMedicamento(m, contextoClinico()))
+      .filter((a) => a.nivel === 'peligro')
+      .map((a) => a.texto);
+  }
+
+  /* --------------------------------------------------------
+     Borrador de la consulta
+
+     Una consulta se escribe durante toda la atención, con interrupciones; un
+     clic fuera del modal o una recarga no deberían costar lo escrito. Se
+     guarda en sessionStorage —no en localStorage— porque es información
+     clínica en un equipo compartido: muere con la pestaña y no queda en el
+     disco para el siguiente que use el computador.
+     -------------------------------------------------------- */
+
+  const CAMPOS_BORRADOR = ['tipo', 'citaId', 'motivo', 'anamnesis', 'sintomas', 'examenFisico', 'planManejo', ...CAMPOS_SIGNOS, 'mucosas'];
+
+  function claveBorrador() {
+    return `huellitas:borrador-consulta:${usuarioId}:${mascotaId}`;
+  }
+
+  /** Valores [data-campo] de un renglón, sin los de los renglones anidados. */
+  function valoresFila(fila, saltarAnidadas) {
+    const datos = {};
+    H.$$('[data-campo]', fila).forEach((c) => {
+      if (saltarAnidadas && c.closest('[data-receta]')) return;
+      datos[c.dataset.campo] = c.type === 'checkbox' ? c.checked : c.value;
+    });
+    return datos;
+  }
+
+  function ponerValores(fila, datos, saltarAnidadas) {
+    H.$$('[data-campo]', fila).forEach((c) => {
+      if (saltarAnidadas && c.closest('[data-receta]')) return;
+      if (!(c.dataset.campo in datos)) return;
+      if (c.type === 'checkbox') c.checked = Boolean(datos[c.dataset.campo]);
+      else c.value = datos[c.dataset.campo];
+    });
+  }
+
+  let temporizadorBorrador = null;
+  function guardarBorrador() {
+    clearTimeout(temporizadorBorrador);
+    temporizadorBorrador = setTimeout(() => {
+      const form = $('#formConsulta');
+      const datos = {
+        campos: Object.fromEntries(CAMPOS_BORRADOR.map((n) => [n, form[n].value])),
+        diagnosticos: H.$$('[data-diagnostico]', $('#filasDiagnosticos')).map((f) => valoresFila(f)),
+        tratamientos: H.$$('[data-tratamiento]', $('#filasTratamientos')).map((f) => ({
+          campos: valoresFila(f, true),
+          recetas: H.$$('[data-receta]', f).map((r) => valoresFila(r)),
+        })),
+      };
+      const vacio = !Object.values(datos.campos).some((v) => v && v !== 'consulta') &&
+        !datos.diagnosticos.some((d) => d.descripcion) && !datos.tratamientos.length;
+      try {
+        if (vacio) sessionStorage.removeItem(claveBorrador());
+        else sessionStorage.setItem(claveBorrador(), JSON.stringify(datos));
+      } catch { /* sin almacenamiento: se pierde el borrador, no la consulta */ }
+    }, 400);
+  }
+
+  function leerBorrador() {
+    try {
+      return JSON.parse(sessionStorage.getItem(claveBorrador()) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function borrarBorrador() {
+    clearTimeout(temporizadorBorrador);
+    try { sessionStorage.removeItem(claveBorrador()); } catch { /* nada que borrar */ }
+  }
+
+  function restaurarBorrador(datos) {
+    const form = $('#formConsulta');
+    Object.entries(datos.campos || {}).forEach(([n, v]) => {
+      // La cita puede haberse atendido en otra pestaña: si ya no está en la
+      // lista, el select se queda en "Sin cita" en vez de inventar una opción.
+      if (form[n]) form[n].value = v;
+    });
+    (datos.diagnosticos || []).forEach((d) => ponerValores(agregarDiagnostico(), d));
+    if (!(datos.diagnosticos || []).length) agregarDiagnostico();
+    (datos.tratamientos || []).forEach((t) => {
+      const fila = agregarTratamiento();
+      ponerValores(fila, t.campos || {}, true);
+      (t.recetas || []).forEach((r) => {
+        const receta = agregarReceta(fila.querySelector('[data-recetas]'));
+        ponerValores(receta, r);
+        pintarAvisosReceta(receta);
+      });
+    });
+  }
+
+  function avisoBorrador(hay) {
+    const caja = $('#avisoBorrador');
+    caja.hidden = !hay;
+  }
+
+  function descartarBorrador() {
+    borrarBorrador();
+    abrirFormularioConsulta();
   }
 
   function agregarDiagnostico() {
@@ -231,7 +446,7 @@
       </div>
       <button type="button" class="btn btn-peligro btn-sm" data-quitar>Quitar</button>`;
 
-    fila.querySelector('[data-quitar]').addEventListener('click', () => fila.remove());
+    fila.querySelector('[data-quitar]').addEventListener('click', () => { fila.remove(); guardarBorrador(); });
 
     // Al elegir del catálogo se rellena la descripción, que es lo que se
     // guarda: así no queda vacía por escribir solo el código.
@@ -244,6 +459,7 @@
     });
 
     $('#filasDiagnosticos').appendChild(fila);
+    return fila;
   }
 
   function agregarTratamiento() {
@@ -277,12 +493,17 @@
       </div>
       <button type="button" class="btn btn-peligro btn-sm" data-quitar>Quitar</button>`;
 
-    fila.querySelector('[data-quitar]').addEventListener('click', () => fila.remove());
+    fila.querySelector('[data-quitar]').addEventListener('click', () => {
+      fila.remove();
+      pintarInteracciones();
+      guardarBorrador();
+    });
     fila.querySelector('[data-agregar-receta]').addEventListener('click', () => {
       agregarReceta(fila.querySelector('[data-recetas]'));
     });
 
     $('#filasTratamientos').appendChild(fila);
+    return fila;
   }
 
   function agregarReceta(contenedor) {
@@ -299,6 +520,7 @@
           <span>Medicamento *</span>
           <select data-campo="medicamentoId"><option value="">Elige uno</option>${opciones}</select>
         </label>
+        <div data-avisos></div>
         <div class="campos-fila-3">
           <label class="campo">
             <span>Dosis</span>
@@ -316,8 +538,14 @@
       </div>
       <button type="button" class="btn btn-peligro btn-sm" data-quitar>Quitar</button>`;
 
-    receta.querySelector('[data-quitar]').addEventListener('click', () => receta.remove());
+    receta.querySelector('[data-quitar]').addEventListener('click', () => {
+      receta.remove();
+      pintarInteracciones();
+      guardarBorrador();
+    });
+    receta.querySelector('[data-campo="medicamentoId"]').addEventListener('change', () => pintarAvisosReceta(receta));
     contenedor.appendChild(receta);
+    return receta;
   }
 
   /** Lee un grupo de filas del formulario como objetos. */
@@ -402,9 +630,20 @@
 
     if (!cuerpo.motivo) return H.mostrarError(caja, new Error('Escribe el motivo de la consulta.'));
 
+    // Los avisos graves no bloquean —el veterinario puede tener razones—, pero
+    // guardar una receta así tiene que ser una decisión, no un descuido.
+    const peligros = peligrosDeLaReceta();
+    if (peligros.length) {
+      const seguir = await H.confirmar(
+        `Esta receta tiene avisos de seguridad:\n\n• ${peligros.join('\n• ')}\n\n¿Guardarla de todas formas?`
+      );
+      if (!seguir) return;
+    }
+
     await H.conBoton($('#btnGuardarConsulta'), 'Guardando…', async () => {
       try {
         await H.api.post('/historia/consultas', cuerpo);
+        borrarBorrador();
         H.toast('Consulta registrada.');
         H.cerrarModal('modalConsulta');
         await recargar();

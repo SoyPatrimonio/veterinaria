@@ -349,6 +349,33 @@ Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramienta
 - **Imprimir** — paleta → *Imprimir esta página*: sin menú ni botones y en
   colores claros aunque se esté usando el modo oscuro.
 
+### Seguridad clínica en la consulta
+
+Avisos mientras el veterinario registra una consulta
+(`frontend/js/seguridad-clinica.js`). Avisan, no bloquean: la decisión es
+clínica, pero no puede tomarse sin haber visto el aviso.
+
+- **Alergias a la vista** — arriba de la historia, en rojo, las alergias y
+  las reacciones a medicamentos, sin tener que abrir *Antecedentes*.
+- **Alergia por familia** — recetar amoxicilina a un alérgico a la penicilina
+  avisa como peligro; una cefalosporina avisa de reactividad cruzada. Cubre
+  penicilinas, cefalosporinas, sulfas, AINE, corticoides, fluoroquinolonas,
+  macrólidos, tetraciclinas, aminoglucósidos y lactonas macrocíclicas.
+- **Reacciones previas** — al mismo medicamento o a uno de su familia.
+- **Tóxicos por especie** — permetrina, paracetamol o ibuprofeno en gatos;
+  AINE humanos en perros; antibióticos orales en conejos.
+- **Raza MDR1** — ivermectina y similares en collies, pastores australianos,
+  shelties y demás razas con la mutación.
+- **Interacciones** — AINE con corticoide, dos AINE, el mismo medicamento dos
+  veces en la receta.
+- **Signos vitales** — temperatura, frecuencias y condición corporal contra
+  el rango de la especie (perro, gato, conejo; cachorros aparte), y el peso
+  contra la última medición.
+- **Confirmación al guardar** si la receta tiene algún aviso grave.
+- **Borrador de la consulta** — lo escrito sobrevive a cerrar el modal o
+  recargar. Va en `sessionStorage`, no en `localStorage`: es información
+  clínica en un equipo compartido y desaparece al cerrar la pestaña.
+
 ### App instalable
 
 El sitio se puede instalar como aplicación en el teléfono (Android: *Agregar a
@@ -531,6 +558,7 @@ Están cubiertas las piezas donde un error no se ve venir:
 | `calculadora-clinica.test.js` | Cada fórmula de dosis, infusión y goteo contra la cuenta hecha a mano |
 | `exportar-tablas.test.js` | CSV para Excel sin fórmulas inyectadas; orden de montos, kg y fechas |
 | `pdf.test.js` | Que el pie numerado no agregue hojas en blanco |
+| `seguridad-clinica.test.js` | Alergias por familia, tóxicos por especie, MDR1, interacciones y rangos de signos vitales, sin falsos positivos |
 
 **Pruebas de integración** (`backend/test-integracion/`). Levantan un
 PostgreSQL en memoria con [PGlite](https://pglite.dev) —el motor de PostgreSQL

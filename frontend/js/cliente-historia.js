@@ -67,6 +67,7 @@
     $('#listaAntecedentes').innerHTML = H.antecedentes({
       alergias: historia.alergias,
       condiciones: historia.condiciones,
+      reacciones: historia.reacciones,
     });
     $('#curvaPeso').innerHTML = H.curvaPeso(historia.peso);
 

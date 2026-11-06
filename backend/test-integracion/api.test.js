@@ -175,6 +175,17 @@ test('la agenda se exporta como calendario con la sede de la base', async () => 
   assert.match(texto, /LOCATION:Huellitas de Amor — /);
 });
 
+test('la historia trae alergias y reacciones para los avisos al recetar', async () => {
+  // Rocky (seed): alérgico a la penicilina y con una reacción grave registrada.
+  const h = (await api('GET', '/historia/mascota/3', { token: tokenAdmin })).json;
+  assert.ok(h.alergias.some((a) => a.nombre === 'Penicilina' && a.tipo === 'medicamento'));
+  const reaccion = h.reacciones.find((r) => r.medicamento_id === 1);
+  assert.ok(reaccion, 'la reacción a la amoxicilina');
+  assert.equal(reaccion.medicamento, 'Amoxicilina');
+  assert.equal(reaccion.severidad, 'grave');
+  assert.match(reaccion.principio_activo, /Amoxicilina/);
+});
+
 test('la clienta baja los PDF de su mascota, de una sola página cada uno', async () => {
   const login1 = await api('POST', '/auth/login', { cuerpo: { email: CLIENTA.email, password: CLIENTA.inicial } });
   await api('PUT', '/auth/password', { token: login1.json.token, cuerpo: { actual: CLIENTA.inicial, nueva: CLIENTA.nueva } });

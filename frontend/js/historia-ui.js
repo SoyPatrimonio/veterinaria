@@ -267,8 +267,8 @@
      Antecedentes y peso
      -------------------------------------------------------- */
 
-  function antecedentes({ alergias, condiciones }) {
-    if (!alergias.length && !condiciones.length) {
+  function antecedentes({ alergias, condiciones, reacciones = [] }) {
+    if (!alergias.length && !condiciones.length && !reacciones.length) {
       return H.bloqueVacio('Sin alergias ni condiciones registradas.', 'icon-heart');
     }
 
@@ -285,6 +285,15 @@
           <p>${escapar(a.reaccion || 'Sin reacción registrada')}</p>
         </div>
         <div class="aviso-acciones"><span class="chip chip-aviso">${escapar(a.severidad || 'leve')}</span></div>
+      </div>`)
+      + bloque('Reacciones a medicamentos', reacciones, (r) => `
+      <div class="aviso-tarjeta">
+        <svg class="icon"><use href="#icon-alerta"/></svg>
+        <div class="aviso-cuerpo">
+          <h4>${escapar(r.medicamento || 'Medicamento sin registrar')}</h4>
+          <p>${escapar(r.descripcion)}${r.fecha ? ` · ${escapar(H.fechaLarga(r.fecha))}` : ''}${r.desenlace ? ` · ${escapar(r.desenlace)}` : ''}</p>
+        </div>
+        <div class="aviso-acciones"><span class="chip chip-aviso">${escapar(r.severidad || 'leve')}</span></div>
       </div>`)
       + bloque('Condiciones médicas', condiciones, (c) => `
       <div class="aviso-tarjeta">
