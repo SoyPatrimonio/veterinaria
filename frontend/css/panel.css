@@ -1252,6 +1252,7 @@ table.tabla .acciones{ display: flex; gap: 7px; flex-wrap: wrap; }
 .chip-error{ background: var(--error-bg); color: var(--error); }
 .chip-exito{ background: var(--exito-bg); color: var(--exito); }
 .chip-info{ background: var(--info-bg); color: var(--info); }
+.chip-nuevo{ margin-left: 6px; padding: 1px 8px; background: var(--moss); color: #fff; font-size: .68rem; vertical-align: middle; }
 
 .constantes{ display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 9px; margin-top: 10px; }
 .constante{ background: var(--surface-2); border-radius: var(--radius-s); padding: 9px 11px; }

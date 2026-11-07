@@ -342,16 +342,39 @@
     return promesaResumen;
   }
 
+  /**
+   * Valores que la página ya conoce mejor que el resumen. La bandeja de
+   * avisos, por ejemplo, los marca como leídos al abrirse: si el resumen
+   * llega después con el número de antes, no puede volver a pintarlo.
+   */
+  const contadoresFijados = {};
+  let ultimoResumen = {};
+
+  /**
+   * Cambia el número de una insignia del menú sin recargar la página.
+   * @param {string} clave  la del menú (`contador`), p. ej. 'avisos'
+   * @param {number} valor  0 la oculta
+   */
+  function fijarContador(clave, valor) {
+    contadoresFijados[clave] = Number(valor) || 0;
+    pintarContadores({ resumen: ultimoResumen });
+  }
+
   /** Pinta en el menú los números del resumen; los ceros no se muestran. */
   function pintarContadores(datos) {
-    const resumen = (datos && datos.resumen) || {};
+    ultimoResumen = (datos && datos.resumen) || {};
+    const resumen = { ...ultimoResumen, ...contadoresFijados };
 
     H.$$('.barra-nav [data-contador]').forEach((insignia) => {
       const valor = Number(resumen[insignia.dataset.contador] || 0);
+      // Se repinta también para bajar a cero: sin esto, la insignia se
+      // quedaba con el número viejo aunque ya no hubiera nada pendiente.
+      insignia.hidden = !valor;
+      insignia.classList.remove('barra-insignia-aviso');
+      insignia.removeAttribute('title');
       if (!valor) return;
 
       insignia.textContent = valor > 99 ? '99+' : String(valor);
-      insignia.hidden = false;
 
       const pendiente = Number(resumen[insignia.dataset.aviso] || 0);
       if (pendiente > 0) {
@@ -990,6 +1013,7 @@
   Object.assign(H, {
     montarPanel,
     resumenPanel,
+    fijarContador,
     cerrarSesion,
     insigniaEstado,
     bloqueVacio,

@@ -38,6 +38,12 @@
 
   let recordatoriosCargados = false;
 
+  // Los que llegaron sin leer en esta visita. Abrir la bandeja los da por
+  // vistos —así el número del menú desaparece—, pero se siguen resaltando
+  // mientras la página esté abierta para que se note qué es lo nuevo.
+  const nuevos = new Set();
+  let bandejaVista = false;
+
   document.addEventListener('DOMContentLoaded', async () => {
     const usuario = H.montarPanel(null, ['notificaciones.ver']);
     if (!usuario) return;
@@ -72,6 +78,12 @@
         limite: 100,
       });
 
+      if (!bandejaVista) {
+        bandejaVista = true;
+        await darPorVistos(datos);
+      }
+      H.fijarContador('avisos', datos.noLeidas);
+
       caja.innerHTML = datos.notificaciones.length
         ? `<div class="lista-avisos">${datos.notificaciones.map(tarjeta).join('')}</div>`
         : H.bloqueVacio('No tienes avisos por aquí.', 'icon-check');
@@ -87,13 +99,34 @@
     }
   }
 
+  /**
+   * Marca como leído lo que estaba sin leer al abrir la bandeja. Si falla, la
+   * bandeja se ve igual y el número se queda: es un aviso, no un error.
+   */
+  async function darPorVistos(datos) {
+    const sinLeer = datos.notificaciones.filter((a) => !a.leida);
+    if (!datos.noLeidas) return;
+
+    try {
+      await H.api.post('/notificaciones/leer-todas', {});
+      sinLeer.forEach((a) => {
+        nuevos.add(a.id);
+        a.leida = true;
+      });
+      datos.noLeidas = 0;
+    } catch (error) {
+      console.warn('[avisos] no se pudieron marcar como vistos:', error);
+    }
+  }
+
   function tarjeta(aviso) {
     const icono = ICONO_TIPO[aviso.tipo] || 'icon-panel';
+    const esNuevo = nuevos.has(aviso.id);
 
-    return `<article class="aviso-tarjeta ${aviso.leida ? '' : 'sin-leer'}">
+    return `<article class="aviso-tarjeta ${aviso.leida && !esNuevo ? '' : 'sin-leer'}">
       <svg class="icon"><use href="#${icono}"/></svg>
       <div class="aviso-cuerpo">
-        <h4>${escapar(aviso.titulo)}</h4>
+        <h4>${escapar(aviso.titulo)}${esNuevo ? ' <span class="chip chip-nuevo">Nuevo</span>' : ''}</h4>
         ${aviso.mensaje ? `<p>${escapar(aviso.mensaje)}</p>` : ''}
         <span class="aviso-fecha">${escapar(H.fechaLarga(aviso.creado_en))} · ${escapar(H.hora12(aviso.creado_en))}</span>
       </div>
