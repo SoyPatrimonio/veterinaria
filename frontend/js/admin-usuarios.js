@@ -27,6 +27,10 @@
     });
 
     $('#formUsuario').addEventListener('submit', crear);
+    H.password.adjuntar($('#formUsuario').password, {
+      datos: () => ({ nombre: $('#formUsuario').nombre.value, email: $('#formUsuario').email.value }),
+      generar: true,
+    });
     $('#filtroRol').addEventListener('change', recargar);
     $('#filtroEstado').addEventListener('change', recargar);
     $('#inputBusqueda').addEventListener('input', () => {
@@ -133,9 +137,8 @@
       password: form.password.value,
     };
 
-    if (cuerpo.password.length < 8 || !/[A-Za-z]/.test(cuerpo.password) || !/\d/.test(cuerpo.password)) {
-      return H.mostrarError(caja, new Error('La contraseña debe tener al menos 8 caracteres, con una letra y un número.'));
-    }
+    const problema = H.password.validar(cuerpo.password, cuerpo);
+    if (problema) return H.mostrarError(caja, new Error(problema));
 
     // Crear una cuenta es crear una llave del sistema: el servidor pide
     // confirmar con la contraseña de quien la está creando.

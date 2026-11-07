@@ -444,8 +444,13 @@ async function historialPeso(mascotaId) {
   );
 }
 
+/**
+ * Alergias, condiciones y reacciones adversas registradas. Las reacciones van
+ * con el medicamento y su principio activo porque el formulario de consulta
+ * las usa para avisar si se receta lo mismo o algo de la misma familia.
+ */
 async function alergiasYCondiciones(mascotaId) {
-  const [alergias, condiciones] = await Promise.all([
+  const [alergias, condiciones, reacciones] = await Promise.all([
     consultar(
       `SELECT ma.severidad, ma.reaccion, a.nombre, a.tipo
          FROM mascota_alergias ma
@@ -462,9 +467,18 @@ async function alergiasYCondiciones(mascotaId) {
         ORDER BY c.nombre`,
       [mascotaId]
     ),
+    consultar(
+      `SELECT r.medicamento_id, r.descripcion, r.severidad, r.fecha, r.desenlace,
+              med.nombre AS medicamento, med.principio_activo
+         FROM reacciones_medicamentosas r
+         LEFT JOIN medicamentos med ON med.id = r.medicamento_id
+        WHERE r.mascota_id = ?
+        ORDER BY r.fecha DESC`,
+      [mascotaId]
+    ),
   ]);
 
-  return { alergias, condiciones };
+  return { alergias, condiciones, reacciones };
 }
 
 /** Refuerzos de vacuna que vencen pronto, para el panel de la clínica. */

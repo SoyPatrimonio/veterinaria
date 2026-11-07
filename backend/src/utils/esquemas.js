@@ -1,6 +1,7 @@
 'use strict';
 
 const { z } = require('zod');
+const politicaPassword = require('./politicaPassword');
 
 /* ----------------------------------------------------------------
    Piezas reutilizables
@@ -44,52 +45,53 @@ const telefono = z
   .transform((v) => (v === '' ? null : v ?? null));
 
 /**
- * Contraseñas que no se aceptan por obvias.
+ * Contraseña nueva: letras mayúsculas y minúsculas, números y caracteres
+ * especiales. Las reglas viven en utils/politicaPassword.js, que es la misma
+ * lista que enseña el navegador mientras se escribe.
  *
- * La lista es corta a propósito: no pretende ser un diccionario, sino cerrar
- * lo que de verdad escribe la gente cuando le piden "ocho caracteres con una
- * letra y un número" en el sitio de una veterinaria que se llama Huellitas.
- * Con las reglas de abajo y nada más, "Huellitas1" cumplía las tres
- * condiciones y era la primera que probaría cualquiera.
+ * Se juntan todas las que falten en un solo mensaje en vez de soltarlas de
+ * una en una: arreglar una y que aparezca la siguiente es la manera más
+ * rápida de que alguien abandone el formulario.
  */
-const PASSWORDS_PROHIBIDAS = [
-  'huellitas', 'password', 'contrasena', '12345678', 'qwerty', 'admin', 'veterinaria',
-];
-
-// El nombre de la clínica no vale ni escondido dentro de otra cosa.
-const NOMBRE_CLINICA = 'huellitas';
+const password = z
+  .string({ required_error: 'La contraseña es obligatoria.', invalid_type_error: 'La contraseña debe ser texto.' })
+  .superRefine((valor, ctx) => {
+    const faltan = politicaPassword.reglasFaltantes(valor);
+    if (faltan.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `A la contraseña le falta: ${faltan.map((r) => r.texto.toLowerCase()).join(', ')}.`,
+      });
+      return;
+    }
+    if (politicaPassword.esDemasiadoLarga(valor)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'La contraseña es demasiado larga: usa menos de 72 caracteres.',
+      });
+      return;
+    }
+    if (politicaPassword.esPredecible(valor)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Esa contraseña es demasiado fácil de adivinar. No uses el nombre de la clínica, una palabra común con números detrás ni la misma tecla repetida.',
+      });
+    }
+  });
 
 /**
- * Deja la contraseña como se compara: sin mayúsculas, sin tildes y sin lo que
- * lleve pegado al final.
- *
- * Esa cola es lo importante. El "y un número" se cumple casi siempre pegando
- * cifras detrás de una palabra, y "Huellitas2026" no es más difícil de
- * adivinar que "huellitas": quien prueba a mano empieza justo por ahí.
+ * La contraseña no puede repetir el nombre ni el correo de la cuenta. Va
+ * aparte porque solo los formularios de alta tienen los tres datos a mano.
  */
-function nucleoPassword(valor) {
-  return String(valor)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z]+$/, '');
-}
-
-// Mínimo 8 caracteres con al menos una letra y un número. Es el equilibrio
-// habitual entre seguridad y que la gente no termine anotándola en un papel.
-const password = z
-  .string({ required_error: 'La contraseña es obligatoria.' })
-  .min(8, 'La contraseña debe tener al menos 8 caracteres.')
-  .max(72, 'La contraseña no puede superar 72 caracteres.')
-  .regex(/[A-Za-zÁÉÍÓÚáéíóúÑñ]/, 'La contraseña debe incluir al menos una letra.')
-  .regex(/\d/, 'La contraseña debe incluir al menos un número.')
-  .refine(
-    (valor) => {
-      const nucleo = nucleoPassword(valor);
-      return !PASSWORDS_PROHIBIDAS.includes(nucleo) && !nucleo.includes(NOMBRE_CLINICA);
-    },
-    'Esa contraseña es demasiado fácil de adivinar. No uses el nombre de la clínica ni una palabra común con números detrás.'
-  );
+const sinDatosPersonales = (datos, ctx) => {
+  if (politicaPassword.contieneDatosPersonales(datos.password, datos)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['password'],
+      message: 'La contraseña no puede contener tu nombre ni tu correo.',
+    });
+  }
+};
 
 const idNumerico = (campo = 'El identificador') =>
   z.coerce
@@ -184,6 +186,8 @@ const registro = z
     especialidad: z.enum(especialidades).optional().nullable(),
   })
   .superRefine((datos, ctx) => {
+    sinDatosPersonales(datos, ctx);
+
     if (datos.rol === 'cliente') return;
 
     // 'admin' sigue en la lista de roles para que el servicio pueda contestar
@@ -324,7 +328,7 @@ const crearVeterinario = z.object({
     )
     .optional()
     .default([]),
-});
+}).superRefine(sinDatosPersonales);
 
 const actualizarVeterinario = z.object({
   nombre: texto(2, 120, 'El nombre'),
@@ -410,7 +414,7 @@ const crearUsuario = z.object({
   rol: z.enum(['cliente', 'veterinario', 'admin'], {
     errorMap: () => ({ message: 'El rol debe ser cliente, veterinario o admin.' }),
   }),
-});
+}).superRefine(sinDatosPersonales);
 
 const listarUsuarios = paginacion.extend({
   rol: z.enum(['cliente', 'veterinario', 'admin']).optional(),

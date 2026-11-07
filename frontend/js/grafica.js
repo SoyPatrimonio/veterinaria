@@ -19,7 +19,9 @@
   const ALTO = 220;
   const MARGEN = { arriba: 14, derecha: 12, abajo: 26, izquierda: 52 };
 
-  const COLORES = ['#1B5B46', '#F6A723', '#2F6F9E'];
+  // Tokens del tema (panel.css): cambian solos con el modo oscuro. En SVG
+  // var() solo funciona dentro de style, no en los atributos fill/stroke.
+  const COLORES = ['var(--serie-1)', 'var(--serie-2)', 'var(--serie-3)'];
 
   const areaUtil = {
     ancho: ANCHO - MARGEN.izquierda - MARGEN.derecha,
@@ -68,9 +70,9 @@
       const valor = minimo + rango * fraccion;
       const py = y(valor);
       return `<line x1="${MARGEN.izquierda}" y1="${py}" x2="${ANCHO - MARGEN.derecha}" y2="${py}"
-                    stroke="rgba(12,32,26,0.10)" stroke-width="1"/>
+                    style="stroke:var(--border)" stroke-width="1"/>
               <text x="${MARGEN.izquierda - 8}" y="${py + 4}" text-anchor="end"
-                    font-size="10" fill="#6B7C72" font-family="DM Mono, monospace">${abreviar(valor)}</text>`;
+                    font-size="10" style="fill:var(--muted-2)" font-family="DM Mono, monospace">${abreviar(valor)}</text>`;
     }).join('');
 
     const trazos = series.map((serie, indiceSerie) => {
@@ -79,19 +81,19 @@
 
       const linea = puntos.length === 1
         ? ''
-        : `<polyline points="${coordenadas.join(' ')}" fill="none" stroke="${color}"
+        : `<polyline points="${coordenadas.join(' ')}" fill="none" style="stroke:${color}"
                      stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
 
       // Relleno bajo la primera serie: ayuda a leer el volumen de un vistazo.
       const area = indiceSerie === 0 && puntos.length > 1
         ? `<polygon points="${x(0)},${y(minimo)} ${coordenadas.join(' ')} ${x(puntos.length - 1)},${y(minimo)}"
-                    fill="${color}" opacity="0.10"/>`
+                    style="fill:${color}" opacity="0.10"/>`
         : '';
 
       // Con muchos puntos los círculos se pisan entre sí y ensucian la línea.
       const marcas = puntos.length <= 31
         ? puntos.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.valores[indiceSerie])}" r="3"
-                                        fill="#fff" stroke="${color}" stroke-width="2"><title>${escapar(p.etiqueta)}: ${escapar(abreviar(p.valores[indiceSerie]))}</title></circle>`).join('')
+                                        style="fill:var(--surface);stroke:${color}" stroke-width="2"><title>${escapar(p.etiqueta)}: ${escapar(abreviar(p.valores[indiceSerie]))}</title></circle>`).join('')
         : '';
 
       return area + linea + marcas;
@@ -101,7 +103,7 @@
     const paso = Math.max(1, Math.ceil(puntos.length / 8));
     const etiquetas = puntos.map((p, i) => (
       i % paso === 0 || i === puntos.length - 1
-        ? `<text x="${x(i)}" y="${ALTO - 8}" text-anchor="middle" font-size="10" fill="#6B7C72"
+        ? `<text x="${x(i)}" y="${ALTO - 8}" text-anchor="middle" font-size="10" style="fill:var(--muted-2)"
                  font-family="DM Mono, monospace">${escapar(p.etiqueta)}</text>`
         : ''
     )).join('');

@@ -5,7 +5,8 @@ const ApiError = require('../utils/ApiError');
 const citaModel = require('../models/cita.model');
 const agenda = require('../services/agenda.service');
 const avisos = require('../services/notificaciones.service');
-const { aTimestampSQL } = require('../utils/fechas');
+const { aTimestampSQL, aFechaISO } = require('../utils/fechas');
+const calendario = require('../services/calendario.service');
 const { consultarUna } = require('../config/database');
 
 /** Plantilla de aviso que corresponde a cada estado de la cita. */
@@ -197,4 +198,52 @@ function restarUnDia(timestamp) {
   return aTimestampSQL(fecha);
 }
 
-module.exports = { listar, disponibilidad, crear, detalle, cambiarEstado, cancelar };
+/**
+ * Responde con un archivo de calendario.
+ *
+ * `no-store` porque lleva nombres y teléfonos: ni el navegador ni un proxy
+ * intermedio tienen por qué guardar una copia.
+ */
+function enviarIcs(res, contenido, nombreArchivo) {
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(contenido);
+}
+
+/** GET /api/citas/:id/calendario.ics — una cita, para añadirla al calendario. */
+const calendarioCita = asyncHandler(async (req, res) => {
+  const cita = await citaModel.buscarPorId(req.params.id);
+  if (!cita) throw ApiError.noEncontrado('Esa cita no existe.');
+  if (!puedeVer(req, cita)) throw ApiError.prohibido('No tienes acceso a esta cita.');
+
+  enviarIcs(res, await calendario.deCitas([cita], req.usuario.rol), `cita-${cita.id}.ics`);
+});
+
+/**
+ * GET /api/citas/calendario.ics — las próximas citas de quien lo pide.
+ *
+ * El recorte es el mismo del listado: el cliente las suyas, el veterinario
+ * su agenda y la administración todas. Solo las que siguen en pie: una
+ * cancelada o ya atendida no tiene nada que hacer en un calendario nuevo.
+ */
+const calendarioProximas = asyncHandler(async (req, res) => {
+  const filtros = filtrosSegunRol(req, { desde: aFechaISO(new Date()), limite: 200 });
+
+  if (req.usuario.rol === 'cliente' && !filtros.clienteId) {
+    throw ApiError.badRequest('Tu cuenta no tiene ficha de cliente.');
+  }
+  if (req.usuario.rol === 'veterinario' && !filtros.veterinarioId) {
+    throw ApiError.badRequest('Tu cuenta no está vinculada a un perfil de veterinario.');
+  }
+
+  const citas = (await citaModel.listar(filtros))
+    .filter((c) => c.estado === 'pendiente' || c.estado === 'confirmada');
+
+  enviarIcs(res, await calendario.deCitas(citas, req.usuario.rol), 'mis-citas-huellitas.ics');
+});
+
+module.exports = {
+  listar, disponibilidad, crear, detalle, cambiarEstado, cancelar,
+  calendarioCita, calendarioProximas,
+};

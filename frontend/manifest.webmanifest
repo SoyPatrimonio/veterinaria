@@ -1,0 +1,26 @@
+{
+  "name": "Huellitas de Amor — Veterinaria",
+  "short_name": "Huellitas",
+  "description": "Citas, historia clínica, vacunas y facturas de tus mascotas.",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "id": "/",
+  "start_url": "/login?origen=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A2620",
+  "theme_color": "#0A2620",
+  "categories": ["medical", "health", "lifestyle"],
+  "icons": [
+    { "src": "iconos/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "iconos/app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Agendar cita", "short_name": "Agendar", "url": "/cliente/agendar", "icons": [{ "src": "iconos/app-192.png", "sizes": "192x192" }] },
+    { "name": "Mis citas", "short_name": "Citas", "url": "/cliente/citas", "icons": [{ "src": "iconos/app-192.png", "sizes": "192x192" }] },
+    { "name": "Mi agenda (veterinario)", "short_name": "Agenda", "url": "/veterinario/agenda", "icons": [{ "src": "iconos/app-192.png", "sizes": "192x192" }] }
+  ]
+}

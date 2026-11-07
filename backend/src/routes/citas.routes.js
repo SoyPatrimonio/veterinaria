@@ -5,7 +5,7 @@ const controlador = require('../controllers/citas.controller');
 const { validar } = require('../middleware/validation');
 const { requiereAuth } = require('../middleware/auth');
 const { requierePermiso } = require('../middleware/roles');
-const { limiteCitas } = require('../middleware/rateLimit');
+const { limiteCitas, limiteExportacion } = require('../middleware/rateLimit');
 const esquemas = require('../utils/esquemas');
 
 const router = Router();
@@ -26,6 +26,11 @@ router.get(
 );
 
 router.get('/', puedeVer, validar({ query: esquemas.listarCitas }), controlador.listar);
+
+// Calendarios (.ics) para Google, Apple u Outlook. También antes de /:id.
+// La exportación completa comparte el freno de las demás descargas.
+router.get('/calendario.ics', puedeVer, limiteExportacion, controlador.calendarioProximas);
+router.get('/:id/calendario.ics', puedeVer, validar({ params: esquemas.paramsId }), controlador.calendarioCita);
 router.post('/', requierePermiso('citas.crear'), limiteCitas, validar({ body: esquemas.crearCita }), controlador.crear);
 
 router.get('/:id', puedeVer, validar({ params: esquemas.paramsId }), controlador.detalle);

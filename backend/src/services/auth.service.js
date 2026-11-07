@@ -13,6 +13,8 @@ const seguridad = require('../models/seguridad.model');
 const mfa = require('../models/mfa.model');
 const totp = require('../utils/totp');
 const correo = require('./correo.service');
+const politicaPassword = require('../utils/politicaPassword');
+const passwordFiltrada = require('./passwordFiltrada.service');
 
 // bcryptjs es JavaScript puro: 10 rondas da un buen equilibrio entre coste de
 // login y resistencia a fuerza bruta en esta máquina.
@@ -83,7 +85,18 @@ const MINUTOS_CODIGOS = 15;
 // distintas.
 const { codigoPorCorreo, debeConfigurarApp } = require('../utils/politicaMfa');
 
+/**
+ * Cifra una contraseña NUEVA: registro, altas desde el panel, cambio y
+ * recuperación son los únicos que llaman aquí. Por eso es el sitio de la
+ * última comprobación, la que no cabe en el esquema porque sale a la red:
+ * que no esté en filtraciones públicas (ver passwordFiltrada.service.js).
+ */
 async function hashear(password) {
+  if (await passwordFiltrada.estaFiltrada(password)) {
+    throw ApiError.badRequest(
+      'Esa contraseña aparece en filtraciones de datos públicas y es de las primeras que se prueban en un ataque. Elige otra.'
+    );
+  }
   return bcrypt.hash(password, RONDAS);
 }
 
@@ -751,6 +764,18 @@ async function cerrarSesion(req) {
  * si la contraseña se cambia porque alguien más la conocía, sus tokens dejan
  * de servir en ese momento.
  */
+/**
+ * La regla de no repetir el nombre ni el correo no cabe en el esquema del
+ * cambio y la recuperación, que solo traen la contraseña: aquí se mira contra
+ * la cuenta guardada.
+ */
+async function exigirSinDatosPersonales(usuarioId, nueva) {
+  const cuenta = await usuarioModel.buscarPorId(usuarioId);
+  if (cuenta && politicaPassword.contieneDatosPersonales(nueva, cuenta)) {
+    throw ApiError.badRequest('La contraseña no puede contener tu nombre ni tu correo.');
+  }
+}
+
 async function cambiarPassword(usuarioId, { actual, nueva }, req = null) {
   const hash = await usuarioModel.passwordHashDe(usuarioId);
   if (!hash) throw ApiError.noEncontrado('Usuario no encontrado.');
@@ -761,6 +786,7 @@ async function cambiarPassword(usuarioId, { actual, nueva }, req = null) {
   if (await comparar(nueva, hash)) {
     throw ApiError.badRequest('La contraseña nueva debe ser distinta de la actual.');
   }
+  await exigirSinDatosPersonales(usuarioId, nueva);
 
   await usuarioModel.actualizarPassword(usuarioId, await hashear(nueva));
   await seguridad.cerrarSesionesDe(usuarioId, 'cambio_password');
@@ -823,6 +849,7 @@ async function solicitarRecuperacion({ email }, req = null) {
 async function restablecerPassword({ token, nueva }, req = null) {
   const fila = await seguridad.tokenRecuperacionVigente(token);
   if (!fila) throw ApiError.badRequest('El enlace de recuperación no es válido o ya venció.');
+  await exigirSinDatosPersonales(fila.usuario_id, nueva);
 
   await usuarioModel.actualizarPassword(fila.usuario_id, await hashear(nueva));
   await seguridad.marcarTokenUsado(fila.id);

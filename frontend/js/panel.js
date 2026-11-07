@@ -219,6 +219,36 @@
     document.addEventListener('panel:pestana', (evento) => marcar(evento.detail));
   }
 
+  // Las entradas del menú que esta sesión puede ver. Las usa la paleta de
+  // comandos, que así nunca ofrece un destino que el menú esconde.
+  let menuVisible = [];
+
+  const ICONO_LUNA = '<svg class="icon icon-linea" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+  const ICONO_SOL = '<svg class="icon icon-linea" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+
+  /**
+   * Botón de solo ícono junto al nombre: una fila más en el pie de la barra
+   * dejaba "Cerrar sesión" fuera de la pantalla en portátiles. El ícono y la
+   * etiqueta dicen a qué modo se pasa, no en cuál se está.
+   */
+  function conectarBotonTema(boton) {
+    if (!boton) return;
+    const pintar = () => {
+      const oscuro = H.tema.esOscuro();
+      const etiqueta = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+      boton.innerHTML = oscuro ? ICONO_SOL : ICONO_LUNA;
+      boton.setAttribute('aria-label', etiqueta);
+      boton.title = etiqueta;
+      boton.setAttribute('aria-pressed', String(oscuro));
+    };
+    boton.addEventListener('click', () => H.tema.alternar());
+    document.addEventListener('huellitas:tema', pintar);
+    // Con el tema en 'sistema', cambiarlo en el sistema operativo también
+    // tiene que cambiar el rótulo.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', pintar);
+    pintar();
+  }
+
   /**
    * Valida la sesión, pinta la barra lateral y devuelve el usuario.
    * Devuelve null si hubo redirección (la página no debe seguir cargando).
@@ -230,10 +260,10 @@
     const barra = $('#barraLateral');
     if (barra) {
       const inicial = (usuario.nombre || 'U').trim().charAt(0).toUpperCase();
-      const enlaces = (MENUS[usuario.rol] || [])
-        .filter((item) => !item.permiso || H.puede(...item.permiso))
-        .map(pintarItemDelMenu)
-        .join('');
+      const visibles = (MENUS[usuario.rol] || [])
+        .filter((item) => !item.permiso || H.puede(...item.permiso));
+      const enlaces = visibles.map(pintarItemDelMenu).join('');
+      menuVisible = visibles;
 
       barra.innerHTML = `
         <a class="barra-marca" href="${H.ruta('index.html')}">
@@ -241,6 +271,11 @@
           <span>Huellitas<br>de Amor</span>
         </a>
         <p class="barra-rol">${escapar(NOMBRE_ROL[usuario.rol] || '')}</p>
+        <button type="button" class="barra-buscar" id="btnPaleta" aria-keyshortcuts="Control+K">
+          <svg class="icon"><use href="#icon-buscar"/></svg>
+          <span>Ir a…</span>
+          <kbd>Ctrl K</kbd>
+        </button>
         <nav class="barra-nav">${enlaces}</nav>
         <div class="barra-pie">
           <div class="barra-usuario">
@@ -249,6 +284,7 @@
               <strong>${escapar(usuario.nombre)}</strong>
               <small>${escapar(usuario.email)}</small>
             </div>
+            <button type="button" class="barra-tema" id="btnTema" aria-pressed="false"></button>
           </div>
           <button type="button" class="btn-salir" id="btnMiSeguridad">
             <svg class="icon"><use href="#icon-shield"/></svg> Seguridad de mi cuenta
@@ -261,7 +297,12 @@
       $('#btnSalir').addEventListener('click', cerrarSesion);
       conectarSubmenus(barra);
       montarSeguridadDeCuenta();
+      conectarBotonTema($('#btnTema'));
     }
+
+    // Paleta de comandos y vigilancia de inactividad (panel-herramientas.js).
+    // Si la página no lo carga, el panel funciona igual sin ellas.
+    if (H.herramientas) H.herramientas.montar(usuario, menuVisible);
 
     // Menú lateral en pantallas pequeñas
     const panel = $('#panel');
@@ -301,16 +342,39 @@
     return promesaResumen;
   }
 
+  /**
+   * Valores que la página ya conoce mejor que el resumen. La bandeja de
+   * avisos, por ejemplo, los marca como leídos al abrirse: si el resumen
+   * llega después con el número de antes, no puede volver a pintarlo.
+   */
+  const contadoresFijados = {};
+  let ultimoResumen = {};
+
+  /**
+   * Cambia el número de una insignia del menú sin recargar la página.
+   * @param {string} clave  la del menú (`contador`), p. ej. 'avisos'
+   * @param {number} valor  0 la oculta
+   */
+  function fijarContador(clave, valor) {
+    contadoresFijados[clave] = Number(valor) || 0;
+    pintarContadores({ resumen: ultimoResumen });
+  }
+
   /** Pinta en el menú los números del resumen; los ceros no se muestran. */
   function pintarContadores(datos) {
-    const resumen = (datos && datos.resumen) || {};
+    ultimoResumen = (datos && datos.resumen) || {};
+    const resumen = { ...ultimoResumen, ...contadoresFijados };
 
     H.$$('.barra-nav [data-contador]').forEach((insignia) => {
       const valor = Number(resumen[insignia.dataset.contador] || 0);
+      // Se repinta también para bajar a cero: sin esto, la insignia se
+      // quedaba con el número viejo aunque ya no hubiera nada pendiente.
+      insignia.hidden = !valor;
+      insignia.classList.remove('barra-insignia-aviso');
+      insignia.removeAttribute('title');
       if (!valor) return;
 
       insignia.textContent = valor > 99 ? '99+' : String(valor);
-      insignia.hidden = false;
 
       const pendiente = Number(resumen[insignia.dataset.aviso] || 0);
       if (pendiente > 0) {
@@ -949,6 +1013,7 @@
   Object.assign(H, {
     montarPanel,
     resumenPanel,
+    fijarContador,
     cerrarSesion,
     insigniaEstado,
     bloqueVacio,

@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A2620">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../iconos/apple-touch-icon.png">
 <title>Historia clínica — Huellitas de Amor</title>
 <link rel="icon" type="image/x-icon" href="../iconos/Huellitas-de-Amor-Pet-Silhouette-Logo.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +30,10 @@
         <a class="btn btn-outline" href="pacientes.html">
           <svg class="icon"><use href="#icon-izquierda"/></svg> Pacientes
         </a>
+        <button type="button" class="btn btn-outline" id="btnCalculadora"
+                title="Dosis, infusión y goteo con el peso del paciente">
+          <svg class="icon"><use href="#icon-syringe"/></svg> Calculadora
+        </button>
         <button type="button" class="btn btn-primary" id="btnNuevaConsulta">
           <svg class="icon"><use href="#icon-stetho"/></svg> Nueva consulta
         </button>
@@ -87,6 +94,11 @@
     <p class="modal-sub">Lo que se guarde aquí queda en la historia clínica del paciente.</p>
 
     <p class="mensaje-error" id="errorConsulta" hidden></p>
+
+    <div class="aviso-borrador" id="avisoBorrador" hidden>
+      <span>Recuperamos lo que estabas escribiendo para este paciente.</span>
+      <button type="button" class="btn btn-outline btn-sm" id="btnDescartarBorrador">Empezar de cero</button>
+    </div>
 
     <form id="formConsulta" novalidate>
       <div class="campos-fila">
@@ -166,6 +178,7 @@
       </button>
 
       <h4 style="font-family:var(--font-body);font-size:.9rem;margin:18px 0 10px">Tratamiento y recetas</h4>
+      <div id="avisosInteracciones" aria-live="polite"></div>
       <div class="filas-editables" id="filasTratamientos"></div>
       <button type="button" class="btn btn-outline btn-sm" id="btnAgregarTratamiento" style="margin-top:9px">
         <svg class="icon"><use href="#icon-mas"/></svg> Añadir tratamiento
@@ -296,6 +309,9 @@
 <script src="../js/sprite.js?v=dbcb3001c5"></script>
 <script src="../js/api.js?v=dbcb3001c5"></script>
 <script src="../js/panel.js?v=dbcb3001c5"></script>
+<script src="../js/panel-herramientas.js?v=dbcb3001c5"></script>
+<script src="../js/calculadora-clinica.js?v=dbcb3001c5"></script>
+<script src="../js/seguridad-clinica.js?v=dbcb3001c5"></script>
 <script src="../js/grafica.js?v=dbcb3001c5"></script>
 <script src="../js/historia-ui.js?v=dbcb3001c5"></script>
 <script src="../js/vet-historia.js?v=dbcb3001c5"></script>

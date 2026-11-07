@@ -1,0 +1,36 @@
+# Corre en cada push y en cada pull request: si algo se rompe, el PR lo
+# muestra en rojo antes de fusionarlo.
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependencias
+        run: npm ci
+
+      - name: Linter
+        run: npm run lint
+
+      - name: Pruebas unitarias
+        run: npm test
+
+      # PostgreSQL en memoria (PGlite): no necesita Supabase ni secretos.
+      - name: Pruebas de integración
+        run: npm run test:integracion

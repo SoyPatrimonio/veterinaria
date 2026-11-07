@@ -81,6 +81,7 @@
   const CLAVE_TOKEN = 'huellitas_token';
   const CLAVE_USUARIO = 'huellitas_usuario';
   const CLAVE_PERMISOS = 'huellitas_permisos';
+  const CLAVE_ULTIMA_PETICION = 'huellitas_ultima_peticion';
 
   const sesion = {
     guardar(token, usuario, permisos) {
@@ -91,6 +92,9 @@
       // los vuelve a comprobar en cada petición.
       const lista = permisos || (usuario && usuario.permisos) || [];
       localStorage.setItem(CLAVE_PERMISOS, JSON.stringify(lista));
+      // El login acaba de hablar con el servidor: sin esto, la marca de la
+      // sesión anterior haría creer al panel que esta ya está por vencer.
+      anotarPeticion();
     },
     token() {
       return localStorage.getItem(CLAVE_TOKEN);
@@ -119,8 +123,98 @@
       localStorage.removeItem(CLAVE_TOKEN);
       localStorage.removeItem(CLAVE_USUARIO);
       localStorage.removeItem(CLAVE_PERMISOS);
+      localStorage.removeItem(CLAVE_ULTIMA_PETICION);
     },
   };
+
+  /**
+   * Cuándo llegó al servidor la última petición con token.
+   *
+   * El servidor cierra la sesión tras un rato sin peticiones, no sin ratón ni
+   * teclado. El panel compara las dos cosas (vigilarInactividad, en panel.js)
+   * para avisar antes del cierre y para no dejar caer la sesión de quien lleva
+   * media hora escribiendo una nota sin guardar. Va en localStorage y no en
+   * memoria porque las pestañas comparten sesión: lo que se pide en una
+   * mantiene viva la de las otras.
+   */
+  function anotarPeticion() {
+    try { localStorage.setItem(CLAVE_ULTIMA_PETICION, String(Date.now())); } catch { /* sin almacenamiento */ }
+  }
+  function ultimaPeticion() {
+    try { return Number(localStorage.getItem(CLAVE_ULTIMA_PETICION)) || 0; } catch { return 0; }
+  }
+
+  /* --------------------------------------------------------
+     Tema claro / oscuro
+
+     'sistema' sigue al sistema operativo con la media query de
+     panel.css; 'light' y 'dark' se fijan con data-theme en <html>.
+     Se aplica en cuanto carga este archivo, antes que el resto.
+     -------------------------------------------------------- */
+  const CLAVE_TEMA = 'huellitas_tema';
+  const tema = {
+    actual() {
+      try { return localStorage.getItem(CLAVE_TEMA) || 'sistema'; } catch { return 'sistema'; }
+    },
+    aplicar(valor) {
+      if (valor === 'light' || valor === 'dark') document.documentElement.setAttribute('data-theme', valor);
+      else document.documentElement.removeAttribute('data-theme');
+    },
+    elegir(valor) {
+      try {
+        if (valor === 'sistema') localStorage.removeItem(CLAVE_TEMA);
+        else localStorage.setItem(CLAVE_TEMA, valor);
+      } catch { /* sin almacenamiento: vale solo para esta página */ }
+      tema.aplicar(valor);
+      document.dispatchEvent(new CustomEvent('huellitas:tema', { detail: { tema: valor } }));
+    },
+    esOscuro() {
+      const valor = tema.actual();
+      if (valor === 'dark') return true;
+      if (valor === 'light') return false;
+      return global.matchMedia('(prefers-color-scheme: dark)').matches;
+    },
+    alternar() {
+      tema.elegir(tema.esOscuro() ? 'light' : 'dark');
+    },
+  };
+  tema.aplicar(tema.actual());
+
+  /* --------------------------------------------------------
+     Tamaño de letra
+
+     Todo panel.css está en rem, así que basta con cambiar la letra
+     base de <html> (data-letra, ver panel.css) para que crezcan
+     textos, campos y botones a la vez, sin romper la maqueta como
+     pasa a veces con el zoom del navegador en el teléfono.
+     -------------------------------------------------------- */
+  const CLAVE_LETRA = 'huellitas_letra';
+  const TAMANOS = ['normal', 'grande', 'muy-grande'];
+  const letra = {
+    actual() {
+      try {
+        const valor = localStorage.getItem(CLAVE_LETRA);
+        return TAMANOS.includes(valor) ? valor : 'normal';
+      } catch { return 'normal'; }
+    },
+    aplicar(valor) {
+      if (valor === 'normal') document.documentElement.removeAttribute('data-letra');
+      else document.documentElement.setAttribute('data-letra', valor);
+    },
+    elegir(valor) {
+      const tamano = TAMANOS.includes(valor) ? valor : 'normal';
+      try {
+        if (tamano === 'normal') localStorage.removeItem(CLAVE_LETRA);
+        else localStorage.setItem(CLAVE_LETRA, tamano);
+      } catch { /* sin almacenamiento: vale solo para esta página */ }
+      letra.aplicar(tamano);
+    },
+    /** normal → grande → muy grande → normal. */
+    siguiente() {
+      letra.elegir(TAMANOS[(TAMANOS.indexOf(letra.actual()) + 1) % TAMANOS.length]);
+    },
+  };
+  letra.aplicar(letra.actual());
 
   /**
    * ¿La sesión tiene alguno de estos permisos?
@@ -180,6 +274,45 @@
     }
   }
 
+  const ESPERA_REINTENTO_MS = 800;
+
+  /**
+   * Barra fina arriba mientras hay peticiones en curso.
+   *
+   * Solo aparece si la espera pasa de un cuarto de segundo: lo que responde
+   * al instante no tiene por qué parpadear. Cuenta las peticiones en vuelo,
+   * así que varias a la vez se ven como una sola carga.
+   */
+  const progreso = (() => {
+    let enVuelo = 0;
+    let temporizador = null;
+    let barra = null;
+    const mostrar = (visible) => {
+      if (!document.body) return;
+      if (!barra) {
+        barra = document.createElement('div');
+        barra.className = 'barra-progreso';
+        barra.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(barra);
+      }
+      barra.classList.toggle('activa', visible);
+      document.documentElement.toggleAttribute('aria-busy', visible);
+    };
+    return {
+      empieza() {
+        enVuelo += 1;
+        if (enVuelo === 1) temporizador = setTimeout(() => mostrar(true), 250);
+      },
+      termina() {
+        enVuelo = Math.max(0, enVuelo - 1);
+        if (enVuelo === 0) {
+          clearTimeout(temporizador);
+          mostrar(false);
+        }
+      },
+    };
+  })();
+
   // El parámetro se llama `camino` y no `ruta` a propósito: si se llamara igual
   // que la función ruta() de arriba la taparía, y al querer redirigir al login
   // se estaría llamando a un texto en vez de a la función.
@@ -197,16 +330,33 @@
     }
 
     let respuesta;
+    progreso.empieza();
     try {
       respuesta = await fetch(BASE + camino, { method: metodo, headers: cabeceras, body: payload });
     } catch (error) {
+      // Una lectura se puede repetir sin riesgo: en el teléfono, un corte de
+      // un segundo al cambiar de wifi a datos no tiene por qué ser un error en
+      // pantalla. Una escritura (POST, PUT…) no se repite nunca sola: si la
+      // primera sí llegó al servidor, la cita o el pago quedarían dobles.
+      if (metodo === 'GET' && !opciones.yaReintentada) {
+        await new Promise((r) => setTimeout(r, ESPERA_REINTENTO_MS));
+        return peticion(metodo, camino, cuerpo, { ...opciones, yaReintentada: true });
+      }
       throw new ErrorApi(
-        'No se pudo conectar con el servidor. ¿Está encendido el backend?',
+        'No se pudo conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo.',
         0,
         null,
         error
       );
+    } finally {
+      progreso.termina();
     }
+
+    if (token && respuesta.status !== 401) anotarPeticion();
+
+    // Archivos (PDF, calendario): el cuerpo es el archivo, no JSON. Si falló,
+    // el servidor manda JSON con el motivo y se sigue por el camino normal.
+    if (opciones.binario && respuesta.ok) return respuesta.blob();
 
     let datos = null;
     const tipo = respuesta.headers.get('content-type') || '';
@@ -252,8 +402,28 @@
     return partes.length ? `?${partes.join('&')}` : '';
   }
 
+  /**
+   * Descarga un archivo protegido (PDF, calendario…).
+   *
+   * Un <a href> directo no sirve: el navegador no manda el token en esa
+   * petición. Se pide con fetch como cualquier otra llamada y se entrega el
+   * resultado como descarga.
+   */
+  async function descargar(camino, nombreArchivo) {
+    const archivo = await peticion('GET', camino, undefined, { binario: true });
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   const api = {
     base: BASE,
+    descargar,
     get: (camino, params, opciones) => peticion('GET', camino + query(params), undefined, opciones),
     post: (camino, cuerpo, opciones) => peticion('POST', camino, cuerpo, opciones),
     put: (camino, cuerpo, opciones) => peticion('PUT', camino, cuerpo, opciones),
@@ -494,9 +664,82 @@
     pedirSello();
   }
 
+  /* --------------------------------------------------------
+     App instalable (manifest.webmanifest + sw.js)
+
+     El navegador avisa con `beforeinstallprompt` cuando la página se
+     puede instalar. En los paneles se guarda ese aviso para ofrecerlo
+     con un botón propio (panel-herramientas.js); en el sitio público
+     se deja el del navegador, que es lo que la gente reconoce.
+     -------------------------------------------------------- */
+  let avisoInstalar = null;
+
+  global.addEventListener('beforeinstallprompt', (evento) => {
+    if (document.getElementById('barraLateral')) evento.preventDefault();
+    avisoInstalar = evento;
+    document.dispatchEvent(new CustomEvent('huellitas:instalable'));
+  });
+  global.addEventListener('appinstalled', () => {
+    avisoInstalar = null;
+    document.dispatchEvent(new CustomEvent('huellitas:instalada'));
+  });
+
+  const app = {
+    puedeInstalar: () => Boolean(avisoInstalar),
+    instalada: () => global.matchMedia('(display-mode: standalone)').matches || global.navigator.standalone === true,
+    /** Abre el diálogo del navegador. Devuelve true si se aceptó. */
+    async instalar() {
+      if (!avisoInstalar) return false;
+      const aviso = avisoInstalar;
+      avisoInstalar = null; // el navegador solo deja usarlo una vez
+      aviso.prompt();
+      const { outcome } = await aviso.userChoice;
+      return outcome === 'accepted';
+    },
+  };
+
+  // Los service workers solo existen en HTTPS o en localhost.
+  const contextoSeguro = global.isSecureContext || ['localhost', '127.0.0.1'].includes(location.hostname);
+  if ('serviceWorker' in navigator && contextoSeguro && location.protocol !== 'file:') {
+    global.addEventListener('load', () => {
+      // Si la página ya estaba bajo un service worker y llega otro, es una
+      // versión nueva del sitio: se avisa para recargar en vez de dejar a
+      // alguien media jornada con pantallas viejas. La primera instalación
+      // no avisa (no había versión anterior).
+      const habiaVersion = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (habiaVersion) avisarVersionNueva();
+      });
+      navigator.serviceWorker.register(ruta('sw.js')).catch((error) => {
+        // La app sigue funcionando igual sin él: solo se pierde el modo
+        // sin conexión y la instalación.
+        console.warn('[app] no se pudo registrar el service worker:', error);
+      });
+    });
+  }
+
+  function avisarVersionNueva() {
+    if (document.querySelector('.aviso-version')) return;
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso-version';
+    aviso.setAttribute('role', 'status');
+    aviso.innerHTML = '<span>Hay una versión nueva de Huellitas.</span>';
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'btn btn-primary btn-sm';
+    boton.textContent = 'Recargar';
+    boton.addEventListener('click', () => location.reload());
+    aviso.appendChild(boton);
+    document.body.appendChild(aviso);
+  }
+
   global.Huella = {
     api,
     sesion,
+    tema,
+    letra,
+    app,
+    ultimaPeticion,
     ErrorApi,
     exigirSesion,
     puede,

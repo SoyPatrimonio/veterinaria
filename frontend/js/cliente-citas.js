@@ -80,8 +80,15 @@
         const cancelable = ['pendiente', 'confirmada'].includes(c.estado) &&
           new Date(String(c.inicio).replace(' ', 'T')) > new Date();
 
+        // Las que siguen en pie se pueden llevar al calendario del teléfono,
+        // con aviso el día antes y dos horas antes.
         const acciones = cancelable
-          ? `<button type="button" class="btn btn-peligro btn-sm" data-cancelar="${c.id}">Cancelar</button>`
+          ? `<button type="button" class="btn btn-outline btn-sm" data-descargar="/citas/${c.id}/calendario.ics"
+                     data-archivo="cita-${c.id}.ics" data-cargando="…"
+                     aria-label="Añadir la cita de ${H.escapar(c.mascota_nombre)} a mi calendario">
+               <svg class="icon"><use href="#icon-calendar"/></svg> Calendario
+             </button>
+             <button type="button" class="btn btn-peligro btn-sm" data-cancelar="${c.id}">Cancelar</button>`
           : '';
 
         return H.tarjetaCita(c, 'cliente', acciones);

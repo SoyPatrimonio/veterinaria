@@ -225,10 +225,23 @@ app.use('/api', noEncontrado);
 // como avería del servidor y mandaba a buscar el problema al lado equivocado.
 //
 // En Vercel esto no llega a ejecutarse: allí la función solo atiende /api/*, y
-// de las páginas no encontradas se encarga la capa estática.
+// de las páginas no encontradas se encarga la capa estática (que sirve
+// frontend/404.html por su cuenta).
+//
+// La página 404 se lee una vez al arrancar, por lo mismo: si no estuviera, se
+// responde con el texto plano y no con un 500.
+const PAGINA_404 = (() => {
+  try {
+    return HAY_FRONTEND ? fs.readFileSync(path.join(FRONTEND, '404.html'), 'utf8') : null;
+  } catch {
+    return null;
+  }
+})();
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
   if (!HAY_FRONTEND) return next();
+  if (PAGINA_404 && req.accepts('html')) return res.status(404).type('html').send(PAGINA_404);
   res.status(404).type('text/plain; charset=utf-8').send(`No existe la página ${req.path}.`);
 });
 

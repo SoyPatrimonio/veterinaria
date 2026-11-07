@@ -63,6 +63,22 @@ El asistente pregunta por la cadena de conexión, las claves de Storage y el
 token de Vercel, prueba cada una contra el servicio real y escribe el `.env`.
 Si prefieres hacerlo a mano, copia `.env.example` a `.env` y rellénalo.
 
+**Ningún dato de la base vive en el código.** La conexión, las claves y el
+proyecto de Supabase salen siempre del `.env` (en local) o de las variables
+de entorno de Vercel. Si usas `npm run aplicar` con el archivo
+`PEGAR-CLAVES-AQUI.txt` (ignorado por Git), ponle también los datos del
+proyecto, que están en **Project Settings → Database → Connection string**
+(modo *Transaction*): en `postgresql://postgres.REF:…@HOST:6543/postgres`,
+
+```
+SUPABASE_REF=REF
+SUPABASE_POOLER_HOST=HOST
+DB_PASSWORD=la contraseña de la base
+```
+
+Si ya tienes un `.env` con `DATABASE_URL`, basta con `DB_PASSWORD`: el script
+saca el proyecto de ahí.
+
 **Dos archivos, no uno.** El token de Vercel no va en el `.env`: va en
 `.env.deploy`, en la raíz, con una sola línea `VERCEL_TOKEN=...`. La razón es
 que el `.env` lo carga también la aplicación
@@ -244,6 +260,140 @@ Si tu base ya estaba cargada antes de este cambio, ejecuta
 las tablas del segundo factor, pone la marca en las siete cuentas y cierra las
 sesiones abiertas.
 
+### Política de contraseñas
+
+Toda contraseña nueva —registro, alta desde el panel, cambio y recuperación—
+debe tener:
+
+- al menos 8 caracteres (y no más de 72 bytes, el límite de bcrypt);
+- una letra minúscula y una mayúscula (cuentan la ñ y las tildes);
+- un número;
+- un carácter especial (`! @ # $ % & * . - _` …).
+
+Además se rechazan las predecibles aunque cumplan lo anterior: el nombre de la
+clínica, palabras comunes con cifras o signos pegados (`Password2026!`), la
+misma tecla repetida (`Aaaa1111!`) y las que contienen el nombre o el correo de
+la propia cuenta.
+
+Las reglas viven en `backend/src/utils/politicaPassword.js`; el navegador las
+repite en `frontend/js/password.js` para mostrar, mientras se escribe, una
+lista de requisitos, un medidor de seguridad y el botón de mostrar/ocultar. En
+los formularios de alta de la administración hay además un generador de
+contraseñas aleatorias. Si cambias una regla, cámbiala en los dos archivos.
+
+La última comprobación la hace el servidor al cifrarla: si la contraseña
+aparece en filtraciones públicas ([Have I Been Pwned](https://haveibeenpwned.com/Passwords))
+se rechaza, aunque cumpla las reglas (`P@ssw0rd` las cumple y aparece más de
+seis millones de veces). Solo viajan los 5 primeros caracteres de su SHA-1,
+nunca la contraseña. Si el servicio no responde se deja pasar, y se apaga con
+`VERIFICAR_FILTRADAS=0`.
+
+### Herramientas del panel
+
+Todas las pantallas con barra lateral las tienen (`frontend/js/panel-herramientas.js`):
+
+- **Paleta de comandos** — `Ctrl K` (`⌘ K` en Mac), `/` o el botón **Ir a…**.
+  Busca entre las secciones que tu rol puede ver, aunque escribas sin tildes o
+  a medias (`fact` → Facturación), y ejecuta acciones: cambiar el tema, abrir
+  la seguridad de la cuenta, cerrar sesión. Al personal clínico también le
+  encuentra **pacientes** por nombre, dueño o microchip y abre su historia.
+- **Modo oscuro** — sigue al sistema operativo; el botón de luna/sol junto a tu
+  nombre lo fija a mano y se recuerda en ese navegador.
+- **Inactividad** — el servidor cierra la sesión tras `SESION_INACTIVIDAD_MIN`
+  minutos sin peticiones. El panel avisa con cuenta atrás dos minutos antes, y
+  mientras haya teclado o ratón renueva la sesión solo, para que nadie pierda
+  una nota larga al guardarla. Al vencer, vuelve al login y, al entrar, a la
+  misma página.
+- **Citas en el calendario** — *Añadir a mi calendario* (cliente), *Exportar
+  agenda* (veterinario) y *Exportar al calendario* (administración) bajan un
+  `.ics` que abren Google Calendar, Apple Calendar y Outlook, con aviso el día
+  antes y dos horas antes. Cada cita del cliente tiene además su botón. La
+  hora se pasa a UTC con `CLINICA_TZ`, así que sale bien en cualquier
+  teléfono; una cita cancelada, al volver a importarla, reemplaza a la
+  anterior. El evento no lleva datos clínicos más allá del motivo.
+- **Documentos en PDF** — la ficha de cada mascota (cliente y veterinario)
+  ofrece la historia clínica completa y el carné de vacunación. Los genera el
+  servidor, que comprueba el acceso y deja constancia de cada descarga.
+- **Sin conexión** — una franja avisa al perder internet, antes de que algo
+  falle al guardar.
+- **Exportar a Excel** — cada tabla del sistema trae el botón *Exportar a
+  Excel*: baja lo que se ve, con los filtros puestos, en un CSV que Excel en
+  español abre bien (punto y coma, tildes). Deja fuera los botones y las notas
+  como "(tú)", y neutraliza los textos que Excel ejecutaría como fórmula
+  (`=`, `+`, `@`…), que aquí escribe el público.
+- **Calculadora clínica** (veterinario y administración; paleta → *dosis*, o el
+  botón *Calculadora* de la historia, que trae el último peso del paciente):
+  dosis por peso (mg, mL y tabletas en cuartos), infusión continua (µg/kg/min
+  o mg/kg/h, con o sin bolsa de fluidos) y goteo. No trae dosis precargadas:
+  solo hace la aritmética con lo que escribe el veterinario y avisa de pesos
+  imposibles o volúmenes que no se pueden medir.
+- **Ordenar y filtrar tablas** — clic (o Enter) en un encabezado ordena por
+  esa columna; los montos en pesos, los pesos en kg y las fechas se ordenan por
+  su valor, y el texto como en español. *Filtrar en la tabla* esconde lo que no
+  coincide, sin tildes ni mayúsculas, y *Exportar a Excel* baja solo lo
+  filtrado. Filtro y orden se conservan cuando la página recarga sus datos. Las
+  tablas de más de 15 filas se desplazan en su caja con el encabezado fijo.
+- **Cambios sin guardar** — salir de la página con un alta o una edición a
+  medio escribir (o un texto largo en un formulario) pide confirmación. Los
+  filtros y buscadores no cuentan.
+- **Contador de caracteres** en los textos con límite, que avisa cerca del tope.
+- **Red más tolerante** — una barra fina arriba indica que algo está cargando;
+  una lectura que falla por un corte de red se reintenta sola una vez (las
+  escrituras nunca, para no duplicar una cita o un pago); y cuando se publica
+  una versión nueva del sitio aparece *Recargar*.
+- **Atajos** — `?` muestra la ayuda de atajos; **volver arriba** en páginas
+  largas; página **404** propia (Vercel la sirve sola; Express la lee al
+  arrancar).
+- **Tamaño de letra** — paleta → *Letra más grande* (normal, grande, muy
+  grande). Se recuerda en el navegador.
+- **Imprimir** — paleta → *Imprimir esta página*: sin menú ni botones y en
+  colores claros aunque se esté usando el modo oscuro.
+
+### Seguridad clínica en la consulta
+
+Avisos mientras el veterinario registra una consulta
+(`frontend/js/seguridad-clinica.js`). Avisan, no bloquean: la decisión es
+clínica, pero no puede tomarse sin haber visto el aviso.
+
+- **Alergias a la vista** — arriba de la historia, en rojo, las alergias y
+  las reacciones a medicamentos, sin tener que abrir *Antecedentes*.
+- **Alergia por familia** — recetar amoxicilina a un alérgico a la penicilina
+  avisa como peligro; una cefalosporina avisa de reactividad cruzada. Cubre
+  penicilinas, cefalosporinas, sulfas, AINE, corticoides, fluoroquinolonas,
+  macrólidos, tetraciclinas, aminoglucósidos y lactonas macrocíclicas.
+- **Reacciones previas** — al mismo medicamento o a uno de su familia.
+- **Tóxicos por especie** — permetrina, paracetamol o ibuprofeno en gatos;
+  AINE humanos en perros; antibióticos orales en conejos.
+- **Raza MDR1** — ivermectina y similares en collies, pastores australianos,
+  shelties y demás razas con la mutación.
+- **Interacciones** — AINE con corticoide, dos AINE, el mismo medicamento dos
+  veces en la receta.
+- **Signos vitales** — temperatura, frecuencias y condición corporal contra
+  el rango de la especie (perro, gato, conejo; cachorros aparte), y el peso
+  contra la última medición.
+- **Confirmación al guardar** si la receta tiene algún aviso grave.
+- **Borrador de la consulta** — lo escrito sobrevive a cerrar el modal o
+  recargar. Va en `sessionStorage`, no en `localStorage`: es información
+  clínica en un equipo compartido y desaparece al cerrar la pestaña.
+
+### App instalable
+
+El sitio se puede instalar como aplicación en el teléfono (Android: *Agregar a
+la pantalla de inicio*; iPhone: *Compartir → Agregar a inicio*) y en el
+computador (Chrome/Edge: ícono de instalar en la barra de direcciones, o
+*Instalar la app* en el panel y en la paleta de comandos). Abre en su propia
+ventana, con accesos directos a *Agendar cita*, *Mis citas* y *Mi agenda*.
+
+`frontend/sw.js` guarda la interfaz (HTML, CSS, JS e íconos) para que abra
+rápido y, sin red, muestre la última versión o la página *Sin conexión*.
+**Nunca guarda nada de `/api/`**: historias, facturas y datos personales no
+quedan en el dispositivo. Si cambias su lógica o la lista de precarga, sube el
+número de `CACHE` para que las copias viejas se borren.
+
+Los íconos `frontend/iconos/app-*.png` y `apple-touch-icon.png` salen de
+`frontend/iconos/app.svg`. Si cambias el diseño, exporta de nuevo esos
+tamaños (192, 512, 512 a sangre para *maskable* y 180 para iPhone).
+
 ### Verificación en dos pasos
 
 La administración no puede entrar sin segundo factor. Se configura desde
@@ -383,8 +533,9 @@ siguiente.
 ### 6.2 Pruebas y linter
 
 ```bash
-npm test        # pruebas unitarias
-npm run lint    # revisa todo el proyecto
+npm test                  # pruebas unitarias (menos de 10 s, sin base)
+npm run test:integracion  # la API real contra un PostgreSQL real (unos 15 s)
+npm run lint              # revisa todo el proyecto
 npm run lint:fix
 ```
 
@@ -402,6 +553,21 @@ Están cubiertas las piezas donde un error no se ve venir:
 | `esquemas.test.js` | Que la validación de entradas siga rechazando lo que debe rechazar |
 | `agenda.test.js` | Las reglas de reserva: nada en el pasado, fuera de la ventana ni en día cerrado |
 | `errores.test.js` | Que un fallo de PostgreSQL llegue al usuario como un mensaje con sentido y no como un 500 |
+| `politica-password.test.js` | Que el navegador y el servidor acepten y rechacen las mismas contraseñas |
+| `calendario.test.js` | Hora en UTC, escapes y cortes de línea del `.ics`, y qué ve cada rol |
+| `calculadora-clinica.test.js` | Cada fórmula de dosis, infusión y goteo contra la cuenta hecha a mano |
+| `exportar-tablas.test.js` | CSV para Excel sin fórmulas inyectadas; orden de montos, kg y fechas |
+| `pdf.test.js` | Que el pie numerado no agregue hojas en blanco |
+| `seguridad-clinica.test.js` | Alergias por familia, tóxicos por especie, MDR1, interacciones y rangos de signos vitales, sin falsos positivos |
+
+**Pruebas de integración** (`backend/test-integracion/`). Levantan un
+PostgreSQL en memoria con [PGlite](https://pglite.dev) —el motor de PostgreSQL
+compilado para Node, sin instalar nada—, le cargan `schema.sql` y `seed.sql`
+con el mismo `setup-db.js`, arrancan la aplicación y la recorren: cuentas del
+seed, cambio de contraseña con la política, segundo factor con TOTP real,
+altas, calendario, PDFs, permisos entre clientes y registro público. No tocan
+Supabase ni necesitan internet, así que sirven en CI. Al terminar no queda
+nada: la base vive solo mientras corren.
 
 El linter está configurado en `eslint.config.js` con las reglas que atrapan
 errores de verdad, no las de estilo. La más importante es `no-empty` sin
@@ -464,6 +630,8 @@ Base: `/api`. Autenticación con **JWT** en `Authorization: Bearer <token>`.
 | POST | `/citas` | cliente o clínica |
 | PATCH | `/citas/:id/estado` | cliente (solo cancelar) · clínica (todo) |
 | DELETE | `/citas/:id` | atajo de cancelación |
+| GET | `/citas/calendario.ics` | próximas citas según el rol, en formato de calendario |
+| GET | `/citas/:id/calendario.ics` | una cita, en formato de calendario |
 
 ### Historia clínica
 | Método | Ruta | Permiso |

@@ -2,6 +2,7 @@
 
 const PDFDocument = require('pdfkit');
 const { consultarUna, consultar } = require('../config/database');
+const { datosClinica } = require('./clinica.service');
 
 /**
  * Reportes profesionales en PDF.
@@ -29,24 +30,6 @@ function nuevoDocumento(titulo) {
     margin: MARGEN,
     info: { Title: titulo, Author: 'Huellitas de Amor', Creator: 'Sistema Huellitas' },
   });
-}
-
-async function datosClinica() {
-  const filas = await consultar(
-    `SELECT clave, valor FROM configuraciones WHERE clave IN ('clinica.nombre','clinica.nit')`
-  );
-  const mapa = Object.fromEntries(filas.map((f) => [f.clave, f.valor]));
-
-  const sede = await consultarUna(
-    `SELECT nombre, direccion, ciudad, telefono, email FROM sedes
-      WHERE activo = 1 ORDER BY principal DESC LIMIT 1`
-  );
-
-  return {
-    nombre: mapa['clinica.nombre'] || 'Huellitas de Amor',
-    nit: mapa['clinica.nit'] || '',
-    sede: sede || {},
-  };
 }
 
 function membrete(doc, clinica, titulo, subtitulo) {
@@ -144,19 +127,30 @@ function tabla(doc, columnas, filas) {
   });
 }
 
-/** Pie con la fecha de emisión y quién lo sacó. Va en todas las páginas. */
+/**
+ * Pie con la fecha de emisión y quién lo sacó. Va en todas las páginas.
+ *
+ * Se escribe dentro del margen inferior, y pdfkit, al ver texto por debajo
+ * del margen, abre una página nueva para "hacerle sitio": cada documento
+ * salía con una hoja en blanco al final que solo tenía el pie. Por eso el
+ * margen se quita mientras se escribe y se devuelve después, y la línea no
+ * puede partirse.
+ */
 function pie(doc, generadoPor) {
   const paginas = doc.bufferedPageRange();
   const emitido = new Date().toLocaleString('es-CO');
 
   for (let i = 0; i < paginas.count; i += 1) {
     doc.switchToPage(paginas.start + i);
+    const margenInferior = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
     doc.fillColor(COLOR.gris).font('Helvetica').fontSize(7.5).text(
       `Emitido el ${emitido}${generadoPor ? ` por ${generadoPor}` : ''} · Página ${i + 1} de ${paginas.count}`,
       MARGEN,
       doc.page.height - 42,
-      { width: doc.page.width - MARGEN * 2, align: 'center' }
+      { width: doc.page.width - MARGEN * 2, align: 'center', lineBreak: false }
     );
+    doc.page.margins.bottom = margenInferior;
   }
 }
 
@@ -565,6 +559,9 @@ async function informeHospitalizacion(hospitalizacionId, generadoPor) {
 }
 
 module.exports = {
+  // El armazón (membrete, contenido, pie numerado) para documentos nuevos.
+  generar,
+  tabla,
   historiaClinica,
   certificadoVacunacion,
   formulaMedica,
