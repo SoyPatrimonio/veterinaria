@@ -203,18 +203,42 @@ const requiereAuth = asyncHandler(async (req, res, next) => {
  * El fallo se registra: alguien probando contraseñas contra esta puerta, ya
  * dentro de una sesión ajena, es exactamente el movimiento que hay que ver.
  */
-const reautenticar = asyncHandler(async (req, res, next) => {
-  const password = req.body ? req.body.passwordActual : null;
+/**
+ * Comprueba la contraseña de quien ya tiene la sesión abierta.
+ *
+ * Es la pieza común de todo lo que pide "escribe otra vez tu contraseña":
+ * las acciones críticas del panel (reautenticar, abajo) y quitar o renovar el
+ * segundo factor.
+ *
+ * Lleva el mismo freno que el login, y eso es lo que la separa de un simple
+ * bcrypt.compare. Los fallos de aquí ya se registraban, pero nadie los
+ * miraba antes de comparar: quien se encontrara una sesión abierta —o robara
+ * el token— podía tantear la contraseña de la cuenta sin límite, y una vez
+ * acertada, quitar el segundo factor o crear otro administrador. Ahora, al
+ * llegar al tope, se corta con 429 igual que en el login, y como los dos
+ * cuentan en la misma tabla, tantear por aquí también bloquea el login.
+ */
+async function confirmarPassword(usuario, password, req = null) {
   if (!password || typeof password !== 'string') {
     throw ApiError.badRequest('Escribe tu contraseña para confirmar esta acción.');
   }
 
-  const hash = await usuarioModel.passwordHashDe(req.usuario.id);
-  if (!hash || !(await bcrypt.compare(String(password), hash))) {
+  const { maximos, minutos } = await seguridad.reglasDeBloqueo();
+  const cuenta = await usuarioModel.buscarPorEmailConFallos(usuario.email, minutos);
+
+  if ((cuenta?.fallos || 0) >= maximos) {
+    throw new ApiError(
+      429,
+      `Demasiados intentos con la contraseña. Espera ${minutos} minutos antes de volver a intentarlo.`
+    );
+  }
+
+  const hash = await usuarioModel.passwordHashDe(usuario.id);
+  if (!hash || !(await bcrypt.compare(password, hash))) {
     const { ip, agente } = seguridad.datosPeticion(req);
     await seguridad.registrarIntento({
-      email: req.usuario.email,
-      usuarioId: req.usuario.id,
+      email: usuario.email,
+      usuarioId: usuario.id,
       exito: false,
       motivo: 'reautenticacion_fallida',
       ip,
@@ -222,6 +246,12 @@ const reautenticar = asyncHandler(async (req, res, next) => {
     });
     throw ApiError.prohibido('La contraseña no es correcta.');
   }
+
+  return true;
+}
+
+const reautenticar = asyncHandler(async (req, res, next) => {
+  await confirmarPassword(req.usuario, req.body ? req.body.passwordActual : null, req);
 
   // El campo no sigue hacia el controlador: nada más abajo tiene que verlo, y
   // así no puede acabar en un registro de auditoría por descuido.
@@ -259,6 +289,7 @@ module.exports = {
   requiereAuth,
   authOpcional,
   reautenticar,
+  confirmarPassword,
   // Se exportan para poder probar las reglas sin levantar el servidor.
   RUTAS_CON_PASSWORD_VENCIDA,
   RUTAS_SIN_MFA,

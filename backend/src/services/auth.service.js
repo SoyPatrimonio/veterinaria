@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const ApiError = require('../utils/ApiError');
 const { firmarToken, verificarToken } = require('../utils/jwt');
 const { aTimestampSQL } = require('../utils/fechas');
-const { enTransaccion, consultar, consultarUna } = require('../config/database');
+const { enTransaccion, consultarUna } = require('../config/database');
 const { jwt: configJwt } = require('../config/env');
 const usuarioModel = require('../models/usuario.model');
 const veterinarioModel = require('../models/veterinario.model');
@@ -20,11 +20,10 @@ const passwordFiltrada = require('./passwordFiltrada.service');
 // login y resistencia a fuerza bruta en esta máquina.
 const RONDAS = 10;
 
-// Tras este número de fallos seguidos la cuenta queda en espera unos minutos.
-// Los valores reales se leen de configuracion.configuraciones, con estos de
-// respaldo por si la tabla aún no está cargada.
-const INTENTOS_MAXIMOS = 5;
-const BLOQUEO_MINUTOS = 15;
+// Cuántos fallos seguidos se admiten y cuánto dura la espera sale de
+// seguridad.reglasDeBloqueo(), que comparten el login y la reautenticación.
+const { reglasDeBloqueo } = seguridad;
+const { confirmarPassword } = require('../middleware/auth');
 
 /**
  * El tope por IP es un múltiplo del de la cuenta, no el mismo número.
@@ -102,48 +101,6 @@ async function hashear(password) {
 
 async function comparar(password, hash) {
   return bcrypt.compare(password, hash);
-}
-
-/**
- * Reglas de bloqueo, leídas de configuracion.configuraciones.
- *
- * Se guardan en memoria un minuto: son dos números que casi nunca cambian y
- * consultarlos en cada login añadiría un viaje a la base justo en la petición
- * donde más se nota. Al minuto siguiente ya se ve el valor nuevo si la
- * administración lo cambió.
- */
-const CACHE_MINUTO = 60 * 1000;
-let cacheReglas = { valor: null, hasta: 0 };
-
-async function reglasDeBloqueo() {
-  if (cacheReglas.valor && Date.now() < cacheReglas.hasta) return cacheReglas.valor;
-
-  const reglas = { maximos: INTENTOS_MAXIMOS, minutos: BLOQUEO_MINUTOS };
-  try {
-    const filas = await consultar(
-      `SELECT clave, valor FROM configuraciones
-        WHERE sede_id IS NULL
-          AND clave IN ('seguridad.intentos_maximos', 'seguridad.bloqueo_minutos')`
-    );
-
-    for (const fila of filas) {
-      const numero = Number(fila.valor);
-      if (!Number.isFinite(numero) || numero <= 0) continue;
-      if (fila.clave === 'seguridad.intentos_maximos') reglas.maximos = numero;
-      if (fila.clave === 'seguridad.bloqueo_minutos') reglas.minutos = numero;
-    }
-  } catch (error) {
-    // Se sigue con los valores de respaldo para no dejar a nadie sin poder
-    // entrar, pero queda dicho: si la tabla no está o la base falla, el
-    // bloqueo por intentos estaría usando números distintos a los del panel.
-    console.warn(
-      `[seguridad] no se pudieron leer las reglas de bloqueo (${error.message}); ` +
-      `se usan las de respaldo: ${INTENTOS_MAXIMOS} intentos / ${BLOQUEO_MINUTOS} min.`
-    );
-  }
-
-  cacheReglas = { valor: reglas, hasta: Date.now() + CACHE_MINUTO };
-  return reglas;
 }
 
 /** Quita el hash y normaliza lo que se devuelve al cliente. */
@@ -644,10 +601,10 @@ async function activarMfa(usuario, codigo, req = null) {
  * sería justo la forma de desarmarlo.
  */
 async function desactivarMfa(usuario, password, req = null) {
-  const hash = await usuarioModel.passwordHashDe(usuario.id);
-  if (!hash || !(await comparar(password, hash))) {
-    throw ApiError.badRequest('La contraseña no es correcta.');
-  }
+  // Con el mismo freno que el login: antes un fallo aquí no se contaba en
+  // ningún sitio, y desde una sesión robada se podía tantear la contraseña
+  // sin que la cuenta llegara nunca a bloquearse.
+  await confirmarPassword(usuario, password, req);
 
   await mfa.desactivar(usuario.id);
 
@@ -660,10 +617,7 @@ async function desactivarMfa(usuario, password, req = null) {
 
 /** Cambia los códigos de recuperación por unos nuevos. También pide contraseña. */
 async function renovarCodigosMfa(usuario, password, req = null) {
-  const hash = await usuarioModel.passwordHashDe(usuario.id);
-  if (!hash || !(await comparar(password, hash))) {
-    throw ApiError.badRequest('La contraseña no es correcta.');
-  }
+  await confirmarPassword(usuario, password, req);
   if (!(await mfa.estaActivo(usuario.id))) {
     throw ApiError.badRequest('No tienes el segundo factor activo.');
   }
@@ -847,12 +801,21 @@ async function solicitarRecuperacion({ email }, req = null) {
 
 /** Paso 2: con el token válido se fija la contraseña nueva. */
 async function restablecerPassword({ token, nueva }, req = null) {
+  const invalido = () => ApiError.badRequest('El enlace de recuperación no es válido o ya venció.');
+
   const fila = await seguridad.tokenRecuperacionVigente(token);
-  if (!fila) throw ApiError.badRequest('El enlace de recuperación no es válido o ya venció.');
+  if (!fila) throw invalido();
   await exigirSinDatosPersonales(fila.usuario_id, nueva);
 
-  await usuarioModel.actualizarPassword(fila.usuario_id, await hashear(nueva));
-  await seguridad.marcarTokenUsado(fila.id);
+  // Las comprobaciones de la contraseña nueva (filtraciones, datos personales)
+  // van antes de gastar el token: si la rechazan, el enlace sigue sirviendo
+  // para intentarlo con otra. Lo que decide quién lo usa es el UPDATE
+  // condicional de marcarTokenUsado(), no la lectura de arriba: con dos
+  // peticiones a la vez, solo una fija contraseña.
+  const passwordHash = await hashear(nueva);
+  if (!(await seguridad.marcarTokenUsado(fila.id))) throw invalido();
+
+  await usuarioModel.actualizarPassword(fila.usuario_id, passwordHash);
   await seguridad.cerrarSesionesDe(fila.usuario_id, 'recuperacion');
 
   const { ip } = seguridad.datosPeticion(req);

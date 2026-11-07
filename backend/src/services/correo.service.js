@@ -14,7 +14,21 @@
  */
 
 const nodemailer = require('nodemailer');
-const { correo: config, appUrl, puerto } = require('../config/env');
+const { correo: config, appUrl, puerto, esProduccion } = require('../config/env');
+
+/**
+ * Escapa lo que va dentro del HTML del correo.
+ *
+ * El nombre lo escribe la propia persona al registrarse —o quien crea la
+ * cuenta desde el panel—, y sin escapar acababa tal cual en el cuerpo del
+ * mensaje: un nombre con etiquetas pintaba enlaces o bloques falsos dentro de
+ * un correo que sale con nuestro remitente y nuestro texto.
+ */
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
 
 /**
  * El transporte se arma una vez y se reutiliza.
@@ -119,7 +133,7 @@ function plantillaCodigo(nombre, codigo, minutos) {
   // Todo el estilo va en línea: los clientes de correo descartan las hojas de
   // estilo, y varios ni siquiera respetan un <style> en la cabecera.
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#243b53;max-width:480px">
-  <p>${saludo}</p>
+  <p>${escaparHtml(saludo)}</p>
   <p>Tu código para entrar a <strong>Huellitas de Amor</strong> es:</p>
   <p style="font-size:32px;letter-spacing:8px;font-weight:700;color:#0f766e;margin:24px 0">${codigo}</p>
   <p>Caduca en ${minutos} minutos y solo sirve una vez.</p>
@@ -160,6 +174,15 @@ async function enviarCodigoIngreso(usuario, codigo, minutos) {
  */
 function baseDelSitio(req) {
   if (appUrl) return appUrl;
+
+  // En producción no hay respaldo: sin APP_URL no se arma el enlace. Antes se
+  // caía al Host de la petición también aquí, y bastaba un proxy por delante
+  // que dejara pasar ese encabezado para que un tercero pidiera la
+  // recuperación de otra persona y el correo legítimo le entregara el token.
+  // Preferimos que el correo no salga —queda un error en el registro— a que
+  // salga apuntando a donde diga quien llama.
+  if (esProduccion) return null;
+
   if (req && typeof req.get === 'function') return `${req.protocol}://${req.get('host')}`;
   return `http://localhost:${puerto}`;
 }
@@ -183,15 +206,15 @@ function plantillaRecuperacion(nombre, enlace, minutos) {
   // El enlace va también como texto visible y no solo dentro del botón: los
   // clientes que no pintan HTML dejarían el correo sin nada que abrir.
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;color:#243b53;max-width:480px">
-  <p>${saludo}</p>
+  <p>${escaparHtml(saludo)}</p>
   <p>Pediste restablecer tu contraseña de <strong>Huellitas de Amor</strong>.</p>
   <p style="margin:24px 0">
-    <a href="${enlace}" style="background:#0f766e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;display:inline-block;font-weight:600">
+    <a href="${escaparHtml(enlace)}" style="background:#0f766e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;display:inline-block;font-weight:600">
       Elegir una contraseña nueva
     </a>
   </p>
   <p style="color:#627d98;font-size:13px">Si el botón no funciona, copia esta dirección:<br>
-    <span style="word-break:break-all">${enlace}</span>
+    <span style="word-break:break-all">${escaparHtml(enlace)}</span>
   </p>
   <p>El enlace caduca en ${minutos} minutos y solo sirve una vez.</p>
   <p style="color:#627d98;font-size:13px">
@@ -212,7 +235,13 @@ function plantillaRecuperacion(nombre, enlace, minutos) {
  * en un buscador de correos registrados.
  */
 async function enviarRecuperacion(usuario, token, minutos, req = null) {
-  const enlace = `${baseDelSitio(req)}/login?token=${encodeURIComponent(token)}`;
+  const base = baseDelSitio(req);
+  if (!base) {
+    console.error('[correo] falta APP_URL: no se envía el enlace de recuperación en producción.');
+    return false;
+  }
+
+  const enlace = `${base}/login?token=${encodeURIComponent(token)}`;
   const { texto, html } = plantillaRecuperacion(usuario.nombre, enlace, minutos);
 
   return enviar({
@@ -230,4 +259,9 @@ module.exports = {
   enviarRecuperacion,
   ocultar,
   probarConexion,
+  // Para las pruebas: lo que se arma sin salir a la red.
+  escaparHtml,
+  baseDelSitio,
+  plantillaCodigo,
+  plantillaRecuperacion,
 };

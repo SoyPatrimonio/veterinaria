@@ -366,8 +366,77 @@ async function tokenRecuperacionVigente(token) {
   );
 }
 
+/**
+ * Gasta el token, y dice si fue esta llamada la que lo gastó.
+ *
+ * La condición va dentro del UPDATE y no en una lectura previa: con dos
+ * peticiones a la vez con el mismo enlace, las dos pasaban la comprobación de
+ * tokenRecuperacionVigente() —ninguna veía todavía el `usado_en` de la otra—
+ * y las dos fijaban contraseña. Así solo una gana; la otra recibe false.
+ */
 async function marcarTokenUsado(id) {
-  await ejecutar('UPDATE tokens_recuperacion SET usado_en = LOCALTIMESTAMP WHERE id = ?', [id]);
+  const resultado = await ejecutar(
+    `UPDATE tokens_recuperacion SET usado_en = LOCALTIMESTAMP
+      WHERE id = ? AND usado_en IS NULL AND expira_en > LOCALTIMESTAMP
+      RETURNING id`,
+    [id]
+  );
+  return Boolean(resultado && resultado.rows && resultado.rows.length);
+}
+
+/* ------------------------------------------------------------------
+   Reglas de bloqueo por intentos
+   ------------------------------------------------------------------ */
+
+// Valores de respaldo por si la tabla de configuración aún no está cargada.
+const INTENTOS_MAXIMOS = 5;
+const BLOQUEO_MINUTOS = 15;
+
+/**
+ * Cuántos fallos seguidos se admiten y cuánto dura la espera, leídos de
+ * configuracion.configuraciones.
+ *
+ * Viven aquí y no en el servicio de ingreso porque los usan dos puertas: el
+ * login y la reautenticación de una sesión ya abierta. Con dos copias, el día
+ * que la administración endureciera el número desde el panel solo cambiaría
+ * una de las dos.
+ *
+ * Se guardan en memoria un minuto: son dos números que casi nunca cambian y
+ * consultarlos en cada login añadiría un viaje a la base justo en la petición
+ * donde más se nota.
+ */
+const CACHE_REGLAS_MS = 60 * 1000;
+let cacheReglas = { valor: null, hasta: 0 };
+
+async function reglasDeBloqueo() {
+  if (cacheReglas.valor && Date.now() < cacheReglas.hasta) return cacheReglas.valor;
+
+  const reglas = { maximos: INTENTOS_MAXIMOS, minutos: BLOQUEO_MINUTOS };
+  try {
+    const filas = await consultar(
+      `SELECT clave, valor FROM configuraciones
+        WHERE sede_id IS NULL
+          AND clave IN ('seguridad.intentos_maximos', 'seguridad.bloqueo_minutos')`
+    );
+
+    for (const fila of filas) {
+      const numero = Number(fila.valor);
+      if (!Number.isFinite(numero) || numero <= 0) continue;
+      if (fila.clave === 'seguridad.intentos_maximos') reglas.maximos = numero;
+      if (fila.clave === 'seguridad.bloqueo_minutos') reglas.minutos = numero;
+    }
+  } catch (error) {
+    // Se sigue con los valores de respaldo para no dejar a nadie sin poder
+    // entrar, pero queda dicho: si la tabla no está o la base falla, el
+    // bloqueo por intentos estaría usando números distintos a los del panel.
+    console.warn(
+      `[seguridad] no se pudieron leer las reglas de bloqueo (${error.message}); ` +
+      `se usan las de respaldo: ${INTENTOS_MAXIMOS} intentos / ${BLOQUEO_MINUTOS} min.`
+    );
+  }
+
+  cacheReglas = { valor: reglas, hasta: Date.now() + CACHE_REGLAS_MS };
+  return reglas;
 }
 
 module.exports = {
@@ -394,4 +463,5 @@ module.exports = {
   crearTokenRecuperacion,
   tokenRecuperacionVigente,
   marcarTokenUsado,
+  reglasDeBloqueo,
 };

@@ -10,7 +10,7 @@ const morgan = require('morgan');
 const rutas = require('./routes');
 const { limiteGeneral } = require('./middleware/rateLimit');
 const { noEncontrado, manejadorErrores } = require('./middleware/errorHandler');
-const { corsOrigins, esProduccion, uploads, supabase } = require('./config/env');
+const { corsOrigins, esProduccion, uploads, supabase, appUrl } = require('./config/env');
 
 const app = express();
 
@@ -68,6 +68,12 @@ app.use((req, res, next) => {
 
   // 308 y no 302: conserva el método y el cuerpo. Con un 302, un POST se
   // convertiría en GET y el formulario se perdería por el camino.
+  //
+  // El destino sale de APP_URL cuando está puesta, no del encabezado Host:
+  // ese lo escribe quien llama, y una redirección armada con él es una
+  // redirección abierta a cualquier dominio (detrás de un proxy que no lo
+  // fije, `Host: sitio-ajeno` mandaba al usuario allí con la ruta intacta).
+  if (appUrl.startsWith('https://')) return res.redirect(308, `${appUrl}${req.originalUrl}`);
   return res.redirect(308, `https://${req.get('host')}${req.originalUrl}`);
 });
 

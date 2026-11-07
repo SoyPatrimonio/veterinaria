@@ -25,6 +25,16 @@ jobs:
       - name: Dependencias
         run: npm ci
 
+      # Falla el PR si una dependencia de producción tiene una vulnerabilidad
+      # crítica conocida, para que se vea en el PR y no al desplegar.
+      #
+      # El umbral es "critical" y no "high" (el de `npm run auditar`) solo
+      # mientras se migra zod 3 → 4: la alerta alta de zod pide un salto de
+      # versión mayor que cambia los mensajes de error de los esquemas, y va
+      # en su propio PR. Al cerrarlo, subir esto a --audit-level=high.
+      - name: Auditoría de dependencias
+        run: npm audit --omit=dev --audit-level=critical
+
       - name: Linter
         run: npm run lint
 
