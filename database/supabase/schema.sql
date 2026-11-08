@@ -541,6 +541,16 @@ CREATE TABLE seguridad.tokens_recuperacion (
 );
 CREATE INDEX idx_tokens_recuperacion_usuario ON seguridad.tokens_recuperacion (usuario_id, usado_en);
 
+-- Contadores del límite de peticiones (express-rate-limit). Viven aquí y no
+-- en la memoria de cada instancia de Vercel para que el tope sea uno solo
+-- para todas. La clave es "<límite>:<ip>". Ver services/limiteCompartido.js.
+CREATE TABLE seguridad.limites_tasa (
+  clave       VARCHAR(200) PRIMARY KEY,
+  conteo      INTEGER NOT NULL DEFAULT 0,
+  reinicia_en TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX idx_limites_tasa_reinicia ON seguridad.limites_tasa (reinicia_en);
+
 -- ---------------------------------------------------------------------
 --  Segundo factor (TOTP)
 --

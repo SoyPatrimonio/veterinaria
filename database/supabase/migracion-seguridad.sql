@@ -99,75 +99,13 @@ SELECT
 
 
 -- =====================================================================
---  4. OPCIONAL — rol de base de datos con privilegios mínimos
+--  4. Rol de base de datos con privilegios mínimos
 --
---  Esta parte va aparte y NO se ejecuta con la de arriba. Hoy la
---  aplicación se conecta como `postgres`, que es superusuario: si
---  alguien encontrara una inyección SQL, podría leer y borrar cualquier
---  cosa del servidor, no solo lo de la aplicación. Y mientras se conecte
---  como superusuario, activar Row Level Security no serviría de nada,
---  porque el superusuario se salta las políticas.
+--  Está en su propio archivo, listo para ejecutar:
+--    database/supabase/migracion-rol-app.sql
 --
---  CÓMO USARLA
---    1. Cambia la contraseña de abajo por una larga y aleatoria.
---    2. Ejecuta este bloque en el editor SQL de Supabase.
---    3. Cambia DATABASE_URL en el .env para que use huellitas_app en vez
---       de postgres, con esa contraseña.
---    4. `npm run deploy` para subir la variable nueva.
---    5. Prueba el sitio. Si algo responde 503 o "permiso denegado", es
---       que falta un GRANT: revísalo antes de dejarlo así.
---
---  `postgres` se sigue usando para las migraciones (npm run db:setup),
---  que sí necesitan crear tablas.
+--  El borrador que había aquí no habría funcionado tal cual: las tablas
+--  tienen RLS activo sin políticas, así que un rol que no es el dueño
+--  las veía vacías. El archivo nuevo crea la política `app_acceso` para
+--  ese rol y lo comprueba al final.
 -- =====================================================================
-
--- DO $$
--- BEGIN
---   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'huellitas_app') THEN
---     CREATE ROLE huellitas_app LOGIN PASSWORD 'CAMBIA-ESTA-CONTRASENA';
---   END IF;
--- END $$;
---
--- -- Puede entrar y ver los esquemas, pero no crear nada dentro.
--- GRANT CONNECT ON DATABASE postgres TO huellitas_app;
---
--- DO $$
--- DECLARE esquema TEXT;
--- BEGIN
---   FOREACH esquema IN ARRAY ARRAY[
---     'configuracion','seguridad','usuarios','mascotas','agenda','historia_clinica',
---     'inventario','facturacion','comunicacion','archivos','urgencias','farmacia',
---     'laboratorio','imagenes','nutricion','telemedicina','comunidad','tienda',
---     'fidelizacion','soporte','personal','equipos','bioseguridad','integraciones',
---     'alertas','ia','prevencion','banco_sangre','banco_tejidos','odontologia',
---     'cardiologia','dermatologia','oftalmologia','rehabilitacion','anestesia',
---     'comportamiento','genetica','reproduccion','calidad','interconsulta','atencion',
---     'dispositivos','gestion_residuos','contratos','sucursales','finanzas',
---     'centro_operaciones','automatizacion','documentos','continuidad','public']
---   LOOP
---     EXECUTE format('GRANT USAGE ON SCHEMA %I TO huellitas_app', esquema);
---     -- Datos: leer y escribir. NADA de DROP, ALTER ni TRUNCATE.
---     EXECUTE format(
---       'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA %I TO huellitas_app', esquema);
---     EXECUTE format(
---       'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO huellitas_app', esquema);
---     EXECUTE format(
---       'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA %I TO huellitas_app', esquema);
---     -- Y lo mismo para las tablas que se creen después.
---     EXECUTE format(
---       'ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO huellitas_app', esquema);
---     EXECUTE format(
---       'ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO huellitas_app', esquema);
---   END LOOP;
--- END $$;
---
--- -- La aplicación no borra historias clínicas: las desactiva. Quitarle el
--- -- permiso deja escrito lo que ya hace el código, y lo sostiene aunque
--- -- alguien escriba un DELETE por descuido.
--- REVOKE DELETE ON historia_clinica.consultas       FROM huellitas_app;
--- REVOKE DELETE ON historia_clinica.historias_clinicas FROM huellitas_app;
--- REVOKE DELETE ON seguridad.auditoria              FROM huellitas_app;
---
--- -- Comprobación: no debe aparecer ni superuser ni createdb.
--- SELECT rolname, rolsuper, rolcreatedb, rolcreaterole
---   FROM pg_roles WHERE rolname = 'huellitas_app';

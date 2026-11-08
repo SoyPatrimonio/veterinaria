@@ -260,6 +260,19 @@ Si tu base ya estaba cargada antes de este cambio, ejecuta
 las tablas del segundo factor, pone la marca en las siete cuentas y cierra las
 sesiones abiertas.
 
+Dos migraciones más, de la auditoría de noviembre de 2026, para una base ya
+cargada (un `npm run db:setup` desde cero no las necesita, salvo la del rol):
+
+- **`migracion-limites-tasa.sql`**: crea `seguridad.limites_tasa`, donde los
+  límites de ingreso, formularios públicos, citas, descargas y subidas cuentan
+  para todas las instancias de Vercel a la vez. Sin ella el sitio funciona
+  igual, pero cada instancia cuenta por su lado y el registro lo avisa.
+- **`migracion-rol-app.sql`**: crea `huellitas_app`, el rol con privilegios
+  mínimos con el que debe conectarse la aplicación en lugar de `postgres`. Las
+  instrucciones (contraseña y `DATABASE_URL`) están al principio del archivo.
+  `npm run test:integracion:rol` corre todas las pruebas de integración con
+  ese rol, y CI también lo hace.
+
 ### Política de contraseñas
 
 Toda contraseña nueva —registro, alta desde el panel, cambio y recuperación—
@@ -535,6 +548,7 @@ siguiente.
 ```bash
 npm test                  # pruebas unitarias (menos de 10 s, sin base)
 npm run test:integracion  # la API real contra un PostgreSQL real (unos 15 s)
+npm run test:integracion:rol  # lo mismo, conectada como huellitas_app
 npm run lint              # revisa todo el proyecto
 npm run lint:fix
 ```

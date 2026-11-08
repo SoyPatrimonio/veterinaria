@@ -202,3 +202,85 @@ test('en producción sin APP_URL no hay base para el enlace de recuperación', (
 
   assert.equal(salida, 'null');
 });
+
+/* ------------------------------------------------------------------
+   5. zod 4 conserva los mensajes en español
+
+   zod 3 → 4 cerró la última alerta alta de `npm audit`, pero zod 4 ignora
+   en silencio `required_error`, `invalid_type_error` y `errorMap`: sin la
+   migración, todos los formularios contestaban en inglés sin que fallara
+   ninguna prueba. Estas fijan los mensajes.
+   ------------------------------------------------------------------ */
+
+test('los esquemas siguen respondiendo en español con zod 4', () => {
+  const esquemas = require('../src/utils/esquemas');
+  const mensajes = (esquema, datos) => Object.fromEntries(
+    esquema.safeParse(datos).error.issues.map((i) => [i.path.join('.'), i.message])
+  );
+
+  // Falta el dato (antes required_error).
+  assert.deepEqual(mensajes(esquemas.login, {}), {
+    email: 'El correo es obligatorio.',
+    password: 'La contraseña es obligatoria.',
+  });
+
+  // Tipo equivocado (antes invalid_type_error).
+  assert.equal(mensajes(esquemas.paramsId, { id: 'abc' }).id, 'El identificador debe ser un número.');
+
+  // Opción fuera de la lista (antes errorMap).
+  assert.equal(
+    mensajes(esquemas.registro, { rol: 'otro', nombre: 'Ana Gómez', email: 'a@b.co', password: 'Abcdef1!x' }).rol,
+    'Elige un tipo de cuenta válido.'
+  );
+
+  // Lo que no tiene mensaje propio cae al español de zod, no al inglés.
+  const porDefecto = mensajes(esquemas.paginacion, { busqueda: 123 }).busqueda;
+  assert.ok(!/expected|received|invalid/i.test(porDefecto), `mensaje en inglés: ${porDefecto}`);
+});
+
+/* ------------------------------------------------------------------
+   6. Límite de peticiones compartido entre instancias
+
+   Los límites sensibles cuentan en seguridad.limites_tasa en vez de en la
+   memoria de cada instancia de Vercel. Si la tabla falta o la base falla,
+   siguen contando en memoria: nunca tumban la ruta.
+   ------------------------------------------------------------------ */
+
+test('el contador compartido usa la base y su conteo', async () => {
+  const { AlmacenCompartido } = require('../src/services/limiteCompartido');
+  const almacen = new AlmacenCompartido('auth');
+  almacen.init({ windowMs: 15 * 60 * 1000 });
+
+  const reinicio = new Date(Date.now() + 60_000);
+  respuestas = { 'INSERT INTO limites_tasa': { rows: [{ conteo: 3, reinicia_en: reinicio }] } };
+
+  const info = await almacen.increment('203.0.113.7');
+  assert.equal(info.totalHits, 3);
+  assert.equal(info.resetTime.getTime(), reinicio.getTime());
+
+  // Atómico: el reinicio de la ventana va dentro del mismo INSERT … ON CONFLICT.
+  const { sql, params } = escrituras.find((e) => /INSERT INTO limites_tasa/.test(e.sql));
+  assert.match(sql, /ON CONFLICT \(clave\) DO UPDATE/);
+  assert.equal(params[0], 'auth:203.0.113.7');
+});
+
+test('si la tabla no está, el límite sigue contando en memoria y avisa una vez', async () => {
+  const { AlmacenCompartido } = require('../src/services/limiteCompartido');
+  const almacen = new AlmacenCompartido('publico');
+  almacen.init({ windowMs: 60_000 });
+
+  respuestas = {
+    'limites_tasa': () => { throw Object.assign(new Error('no existe'), { code: '42P01' }); },
+  };
+
+  const avisos = [];
+  const original = console.warn;
+  console.warn = (m) => avisos.push(m);
+  try {
+    assert.equal((await almacen.increment('198.51.100.1')).totalHits, 1);
+    assert.equal((await almacen.increment('198.51.100.1')).totalHits, 2);
+  } finally {
+    console.warn = original;
+  }
+  assert.equal(avisos.length, 1, 'un solo aviso, no uno por petición');
+});

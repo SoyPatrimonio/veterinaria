@@ -53,6 +53,27 @@ function cargarBase() {
   });
 }
 
+/**
+ * Con PRUEBA_ROL_APP=1 todo lo de abajo corre como `huellitas_app`, el rol
+ * de privilegios mínimos de database/supabase/migracion-rol-app.sql, en vez
+ * de como postgres. Es la prueba de que esa migración le da a la aplicación
+ * todo lo que usa: un GRANT o una política de RLS que falte aparece aquí
+ * como un 500 o una lista vacía, y no en producción.
+ *
+ * PGlite es una sola sesión compartida por todas las conexiones del socket,
+ * así que el SET ROLE de aquí vale también para las de la aplicación.
+ */
+const COMO_ROL_APP = process.env.PRUEBA_ROL_APP === '1';
+
+async function pasarARolApp() {
+  const fs = require('node:fs');
+  const sql = fs
+    .readFileSync(path.join(RAIZ, 'database/supabase/migracion-rol-app.sql'), 'utf8')
+    .replace("clave text := 'CAMBIA-ESTA-CONTRASENA'", "clave text := 'solo-para-las-pruebas-de-integracion'");
+  await base.exec(sql);
+  await base.exec('SET ROLE huellitas_app');
+}
+
 test.before(async () => {
   const { PGlite } = await import('@electric-sql/pglite');
   const { PGLiteSocketServer } = await import('@electric-sql/pglite-socket');
@@ -60,6 +81,7 @@ test.before(async () => {
   servidorDb = new PGLiteSocketServer({ db: base, port: PUERTO_DB, host: '127.0.0.1', maxConnections: 20 });
   await servidorDb.start();
   await cargarBase();
+  if (COMO_ROL_APP) await pasarARolApp();
 
   const app = require(path.join(RAIZ, 'backend/src/app'));
   await new Promise((r) => { servidorApi = app.listen(0, '127.0.0.1', r); });
@@ -96,6 +118,25 @@ const CLIENTA = { email: 'daniela@correo.com', inicial: 'Cliente123', nueva: 'Ma
 let tokenAdmin;
 let tokenClienta;
 let mascotaPropia;
+
+test('la aplicación habla con la base con el rol que toca', { skip: !COMO_ROL_APP }, async () => {
+  const { consultarUna } = require(path.join(RAIZ, 'backend/src/config/database'));
+  const fila = await consultarUna('SELECT current_user AS rol');
+  assert.equal(fila.rol, 'huellitas_app');
+
+  // Y ese rol no puede tocar la estructura ni lo que la clínica no borra.
+  const consultar = require(path.join(RAIZ, 'backend/src/config/database')).consultar;
+  for (const sql of [
+    'DROP TABLE seguridad.sesiones',
+    'TRUNCATE seguridad.sesiones',
+    'CREATE TABLE seguridad.intrusa (x int)',
+    'DELETE FROM historia_clinica.consultas',
+    'DELETE FROM seguridad.auditoria',
+    'UPDATE seguridad.auditoria SET descripcion = descripcion',
+  ]) {
+    await assert.rejects(() => consultar(sql), /permis|owner|denied|must be/i, sql);
+  }
+});
 
 test('la base de pruebas tiene el esquema y los datos del seed', async () => {
   const r = await api('GET', '/servicios');
@@ -230,4 +271,10 @@ test('el registro público pide sello y contraseña fuerte', async () => {
   const bien = await registrar('Cafe.Montana#8', 'pedro@correo.com');
   assert.equal(bien.status, 201, motivo(bien));
   assert.ok(bien.json.token);
+});
+
+test('los límites de ingreso cuentan en la base, no en la memoria de la instancia', async () => {
+  const { consultar } = require(path.join(RAIZ, 'backend/src/config/database'));
+  const filas = await consultar("SELECT clave, conteo FROM limites_tasa WHERE clave LIKE 'auth:%'");
+  assert.ok(filas.length > 0, 'los intentos de ingreso de arriba tienen que haber dejado su contador');
 });

@@ -26,14 +26,10 @@ jobs:
         run: npm ci
 
       # Falla el PR si una dependencia de producción tiene una vulnerabilidad
-      # crítica conocida, para que se vea en el PR y no al desplegar.
-      #
-      # El umbral es "critical" y no "high" (el de `npm run auditar`) solo
-      # mientras se migra zod 3 → 4: la alerta alta de zod pide un salto de
-      # versión mayor que cambia los mensajes de error de los esquemas, y va
-      # en su propio PR. Al cerrarlo, subir esto a --audit-level=high.
+      # alta o crítica conocida. Es el mismo umbral que `npm run auditar`, que
+      # corre antes de cada deploy: así se ve en el PR y no al desplegar.
       - name: Auditoría de dependencias
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Linter
         run: npm run lint
@@ -44,3 +40,9 @@ jobs:
       # PostgreSQL en memoria (PGlite): no necesita Supabase ni secretos.
       - name: Pruebas de integración
         run: npm run test:integracion
+
+      # Las mismas, conectadas como huellitas_app (migracion-rol-app.sql).
+      # Si un cambio necesita un permiso que ese rol no tiene, falla aquí y
+      # no en producción.
+      - name: Pruebas de integración con el rol de la aplicación
+        run: npm run test:integracion:rol

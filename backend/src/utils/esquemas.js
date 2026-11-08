@@ -4,17 +4,43 @@ const { z } = require('zod');
 const politicaPassword = require('./politicaPassword');
 
 /* ----------------------------------------------------------------
+   Mensajes de error
+   ---------------------------------------------------------------- */
+
+// Los mensajes que zod pone por su cuenta —los que no escribimos aquí—
+// salen en español. Sin esto llegaban al formulario en inglés ("Invalid
+// input: expected string"). Es global y basta con hacerlo una vez: todo el
+// que valida carga este módulo antes.
+z.config(z.locales.es());
+
+/**
+ * El mensaje de "falta el dato" y el de "no es del tipo que toca".
+ *
+ * zod 3 los recibía como `required_error` e `invalid_type_error`; zod 4 los
+ * quitó y los dejó en una sola función `error`, que decide por el valor
+ * recibido. Lo que no se indique cae al mensaje en español de zod.
+ */
+function mensajes({ falta, tipo } = {}) {
+  return {
+    error: (problema) => {
+      if (problema.code !== 'invalid_type') return undefined;
+      return problema.input === undefined ? falta : tipo;
+    },
+  };
+}
+
+/* ----------------------------------------------------------------
    Piezas reutilizables
    ---------------------------------------------------------------- */
 
 const texto = (min, max, campo) =>
-  z.string({ required_error: `${campo} es obligatorio.`, invalid_type_error: `${campo} debe ser texto.` })
+  z.string(mensajes({ falta: `${campo} es obligatorio.`, tipo: `${campo} debe ser texto.` }))
     .trim()
     .min(min, `${campo} debe tener al menos ${min} caracteres.`)
     .max(max, `${campo} no puede superar ${max} caracteres.`);
 
 const textoOpcional = (max, campo) =>
-  z.string({ invalid_type_error: `${campo} debe ser texto.` })
+  z.string(mensajes({ tipo: `${campo} debe ser texto.` }))
     .trim()
     .max(max, `${campo} no puede superar ${max} caracteres.`)
     .optional()
@@ -22,7 +48,7 @@ const textoOpcional = (max, campo) =>
     .transform((v) => (v === '' ? null : v ?? null));
 
 const email = z
-  .string({ required_error: 'El correo es obligatorio.' })
+  .string(mensajes({ falta: 'El correo es obligatorio.' }))
   .trim()
   .toLowerCase()
   .email('Escribe un correo electrónico válido.')
@@ -54,26 +80,26 @@ const telefono = z
  * rápida de que alguien abandone el formulario.
  */
 const password = z
-  .string({ required_error: 'La contraseña es obligatoria.', invalid_type_error: 'La contraseña debe ser texto.' })
+  .string(mensajes({ falta: 'La contraseña es obligatoria.', tipo: 'La contraseña debe ser texto.' }))
   .superRefine((valor, ctx) => {
     const faltan = politicaPassword.reglasFaltantes(valor);
     if (faltan.length) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: `A la contraseña le falta: ${faltan.map((r) => r.texto.toLowerCase()).join(', ')}.`,
       });
       return;
     }
     if (politicaPassword.esDemasiadoLarga(valor)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'La contraseña es demasiado larga: usa menos de 72 caracteres.',
       });
       return;
     }
     if (politicaPassword.esPredecible(valor)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Esa contraseña es demasiado fácil de adivinar. No uses el nombre de la clínica, una palabra común con números detrás ni la misma tecla repetida.',
       });
     }
@@ -86,7 +112,7 @@ const password = z
 const sinDatosPersonales = (datos, ctx) => {
   if (politicaPassword.contieneDatosPersonales(datos.password, datos)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['password'],
       message: 'La contraseña no puede contener tu nombre ni tu correo.',
     });
@@ -95,20 +121,20 @@ const sinDatosPersonales = (datos, ctx) => {
 
 const idNumerico = (campo = 'El identificador') =>
   z.coerce
-    .number({ invalid_type_error: `${campo} debe ser un número.` })
+    .number(mensajes({ tipo: `${campo} debe ser un número.` }))
     .int(`${campo} debe ser un número entero.`)
     .positive(`${campo} debe ser mayor que cero.`);
 
 const fechaISO = (campo = 'La fecha') =>
-  z.string({ required_error: `${campo} es obligatoria.` })
+  z.string(mensajes({ falta: `${campo} es obligatoria.` }))
     .regex(/^\d{4}-\d{2}-\d{2}$/, `${campo} debe tener el formato AAAA-MM-DD.`);
 
 const horaHHMM = (campo = 'La hora') =>
-  z.string({ required_error: `${campo} es obligatoria.` })
+  z.string(mensajes({ falta: `${campo} es obligatoria.` }))
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, `${campo} debe tener el formato HH:MM.`);
 
 const fechaHoraISO = (campo = 'La fecha y hora') =>
-  z.string({ required_error: `${campo} es obligatoria.` })
+  z.string(mensajes({ falta: `${campo} es obligatoria.` }))
     .regex(
       /^\d{4}-\d{2}-\d{2}[ T]([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/,
       `${campo} debe tener el formato AAAA-MM-DD HH:MM.`
@@ -118,13 +144,13 @@ const fechaHoraISO = (campo = 'La fecha y hora') =>
 
 const dinero = (campo = 'El valor') =>
   z.coerce
-    .number({ invalid_type_error: `${campo} debe ser un número.` })
+    .number(mensajes({ tipo: `${campo} debe ser un número.` }))
     .min(0, `${campo} no puede ser negativo.`)
     .max(999999999, `${campo} está fuera de rango.`);
 
 const entero = (campo, min = 0, max = 999999) =>
   z.coerce
-    .number({ invalid_type_error: `${campo} debe ser un número.` })
+    .number(mensajes({ tipo: `${campo} debe ser un número.` }))
     .int(`${campo} debe ser un número entero.`)
     .min(min, `${campo} no puede ser menor que ${min}.`)
     .max(max, `${campo} está fuera de rango.`);
@@ -177,7 +203,7 @@ const registro = z
     password,
     rol: z
       .enum(['cliente', 'veterinario', 'admin'], {
-        errorMap: () => ({ message: 'Elige un tipo de cuenta válido.' }),
+        error: 'Elige un tipo de cuenta válido.',
       })
       .optional()
       .default('cliente'),
@@ -199,7 +225,7 @@ const registro = z
 
     if (!datos.codigoAcceso) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['codigoAcceso'],
         message: 'Escribe el código de acceso que te dio la administración de la clínica.',
       });
@@ -209,14 +235,14 @@ const registro = z
 
     if (!datos.licencia || datos.licencia.length < 3) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['licencia'],
         message: 'Escribe tu número de licencia profesional.',
       });
     }
     if (!datos.especialidad) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['especialidad'],
         message: 'Selecciona tu especialidad.',
       });
@@ -232,13 +258,13 @@ const registro = z
  */
 const rotarCodigoAcceso = z.object({
   rol: z.enum(['veterinario'], {
-    errorMap: () => ({ message: 'Ese rol no lleva código de acceso.' }),
+    error: 'Ese rol no lleva código de acceso.',
   }),
 });
 
 const login = z.object({
   email,
-  password: z.string({ required_error: 'La contraseña es obligatoria.' }).min(1, 'Escribe tu contraseña.'),
+  password: z.string(mensajes({ falta: 'La contraseña es obligatoria.' })).min(1, 'Escribe tu contraseña.'),
 });
 
 const cambioPassword = z
@@ -269,7 +295,7 @@ const mascotaBase = {
   nombre: texto(1, 80, 'El nombre de la mascota'),
   especieId: idNumerico('La especie'),
   razaId: idNumerico('La raza').optional().nullable(),
-  sexo: z.enum(sexos, { errorMap: () => ({ message: 'El sexo debe ser macho, hembra o desconocido.' }) })
+  sexo: z.enum(sexos, { error: 'El sexo debe ser macho, hembra o desconocido.' })
     .optional()
     .default('desconocido'),
   fechaNacimiento: fechaISO('La fecha de nacimiento').optional().nullable(),
@@ -311,7 +337,7 @@ const crearVeterinario = z.object({
   password,
   licencia: texto(3, 40, 'El número de licencia'),
   especialidad: z.enum(especialidades, {
-    errorMap: () => ({ message: 'Selecciona una especialidad válida.' }),
+    error: 'Selecciona una especialidad válida.',
   }),
   descripcion: textoOpcional(1000, 'La descripción'),
   duracionSlotMin: z.coerce.number().int().min(10).max(120).optional().default(30),
@@ -388,7 +414,7 @@ const estadosCita = ['pendiente', 'confirmada', 'atendida', 'cancelada', 'no_asi
 
 const cambiarEstadoCita = z.object({
   estado: z.enum(estadosCita, {
-    errorMap: () => ({ message: `El estado debe ser uno de: ${estadosCita.join(', ')}.` }),
+    error: `El estado debe ser uno de: ${estadosCita.join(', ')}.`,
   }),
   notas: textoOpcional(1000, 'Las notas'),
 });
@@ -412,7 +438,7 @@ const crearUsuario = z.object({
   telefono,
   password,
   rol: z.enum(['cliente', 'veterinario', 'admin'], {
-    errorMap: () => ({ message: 'El rol debe ser cliente, veterinario o admin.' }),
+    error: 'El rol debe ser cliente, veterinario o admin.',
   }),
 }).superRefine(sinDatosPersonales);
 
@@ -423,7 +449,7 @@ const listarUsuarios = paginacion.extend({
 
 const cambiarEstadoUsuario = z.object({
   estado: z.enum(['activo', 'inactivo', 'bloqueado'], {
-    errorMap: () => ({ message: 'El estado debe ser activo, inactivo o bloqueado.' }),
+    error: 'El estado debe ser activo, inactivo o bloqueado.',
   }),
 });
 
@@ -457,7 +483,7 @@ const consultaAuditoria = z.object({
 // Seis cifras de la aplicación. Se quitan los espacios porque algunas apps
 // muestran el código partido en dos grupos de tres.
 const codigoTotp = z
-  .string({ required_error: 'Escribe el código de tu aplicación.' })
+  .string(mensajes({ falta: 'Escribe el código de tu aplicación.' }))
   .trim()
   .transform((v) => v.replace(/\s/g, ''))
   .refine((v) => /^\d{6}$/.test(v), 'El código son seis cifras.');
@@ -465,7 +491,7 @@ const codigoTotp = z
 // En el ingreso se acepta también uno de recuperación (XXXX-XXXX), así que la
 // forma es más ancha y quien decide cuál es se hace en el servicio.
 const codigoMfa = z
-  .string({ required_error: 'Escribe el código.' })
+  .string(mensajes({ falta: 'Escribe el código.' }))
   .trim()
   .min(6, 'El código es demasiado corto.')
   .max(20, 'El código es demasiado largo.');
@@ -479,12 +505,12 @@ const activarMfa = z.object({ codigo: codigoTotp });
 
 // Reautenticación para las acciones que desarman la seguridad de la cuenta.
 const confirmarConPassword = z.object({
-  password: z.string({ required_error: 'Escribe tu contraseña.' }).min(1, 'Escribe tu contraseña.'),
+  password: z.string(mensajes({ falta: 'Escribe tu contraseña.' })).min(1, 'Escribe tu contraseña.'),
 });
 
 const cambiarRolUsuario = z.object({
   rol: z.enum(['cliente', 'veterinario', 'admin'], {
-    errorMap: () => ({ message: 'El rol debe ser cliente, veterinario o admin.' }),
+    error: 'El rol debe ser cliente, veterinario o admin.',
   }),
 });
 
@@ -536,7 +562,7 @@ const diagnostico = z.object({
   diagnosticoId: idNumerico('El diagnóstico del catálogo').optional().nullable(),
   descripcion: texto(2, 500, 'La descripción del diagnóstico'),
   tipo: z.enum(tiposDiagnostico, {
-    errorMap: () => ({ message: `El tipo de diagnóstico debe ser uno de: ${tiposDiagnostico.join(', ')}.` }),
+    error: `El tipo de diagnóstico debe ser uno de: ${tiposDiagnostico.join(', ')}.`,
   }).optional().default('presuntivo'),
   principal: z.coerce.boolean().optional().default(false),
 });
@@ -550,7 +576,7 @@ const crearConsulta = z.object({
   // Solo lo manda el administrador, que no tiene perfil de veterinario propio.
   veterinarioId: idNumerico('El veterinario').optional().nullable(),
   tipo: z.enum(tiposConsulta, {
-    errorMap: () => ({ message: `El tipo debe ser uno de: ${tiposConsulta.join(', ')}.` }),
+    error: `El tipo debe ser uno de: ${tiposConsulta.join(', ')}.`,
   }).optional().default('consulta'),
   motivo: texto(3, 255, 'El motivo'),
   anamnesis: textoOpcional(4000, 'La anamnesis'),
@@ -599,7 +625,7 @@ const solicitarExamen = z.object({
 
 const resultadosExamen = z.object({
   estado: z.enum(estadosExamen, {
-    errorMap: () => ({ message: `El estado debe ser uno de: ${estadosExamen.join(', ')}.` }),
+    error: `El estado debe ser uno de: ${estadosExamen.join(', ')}.`,
   }).optional().default('listo'),
   conclusion: textoOpcional(4000, 'La conclusión'),
   resultados: z
@@ -654,7 +680,7 @@ const actualizarProducto = z.object(productoBase);
 const movimientoInventario = z.object({
   productoId: idNumerico('El producto'),
   tipo: z.enum(tiposMovimiento, {
-    errorMap: () => ({ message: `El tipo debe ser uno de: ${tiposMovimiento.join(', ')}.` }),
+    error: `El tipo debe ser uno de: ${tiposMovimiento.join(', ')}.`,
   }),
   cantidad: entero('La cantidad', 0, 999999),
   ubicacionId: idNumerico('La ubicación').optional().nullable(),
@@ -751,7 +777,7 @@ const crearFactura = z.object({
 
 const registrarPago = z.object({
   metodo: z.enum(metodosPago, {
-    errorMap: () => ({ message: `El método debe ser uno de: ${metodosPago.join(', ')}.` }),
+    error: `El método debe ser uno de: ${metodosPago.join(', ')}.`,
   }),
   valor: z.coerce.number().positive('El valor del pago debe ser mayor que cero.'),
   referencia: textoOpcional(100, 'La referencia'),
@@ -820,7 +846,7 @@ const crearRecordatorio = z.object({
   citaId: idNumerico('La cita').optional().nullable(),
   aplicacionId: idNumerico('La aplicación de vacuna').optional().nullable(),
   tipo: z.enum(tiposRecordatorio, {
-    errorMap: () => ({ message: `El tipo debe ser uno de: ${tiposRecordatorio.join(', ')}.` }),
+    error: `El tipo debe ser uno de: ${tiposRecordatorio.join(', ')}.`,
   }),
   canal: z.enum(canalesNotificacion).optional().default('sistema'),
   programadoEn: fechaHoraISO('La fecha del aviso'),
@@ -836,7 +862,7 @@ const consultaReportes = z.object({
   desde: fechaISO('La fecha inicial').optional(),
   hasta: fechaISO('La fecha final').optional(),
   agrupacion: z.enum(['dia', 'mes'], {
-    errorMap: () => ({ message: 'La agrupación debe ser dia o mes.' }),
+    error: 'La agrupación debe ser dia o mes.',
   }).optional().default('dia'),
 });
 
@@ -862,7 +888,7 @@ const registrarUrgencia = z.object({
 
 const triageUrgencia = z.object({
   prioridad: z.enum(prioridadesTriage, {
-    errorMap: () => ({ message: `La prioridad debe ser una de: ${prioridadesTriage.join(', ')}.` }),
+    error: `La prioridad debe ser una de: ${prioridadesTriage.join(', ')}.`,
   }),
   salaId: idNumerico('La sala').optional().nullable(),
   veterinarioId: idNumerico('El veterinario').optional().nullable(),
@@ -948,7 +974,7 @@ const ingresarHospitalizacion = z.object({
 
 const egresarHospitalizacion = z.object({
   estado: z.enum(['alta', 'remitida', 'fallecido'], {
-    errorMap: () => ({ message: 'El egreso debe ser alta, remitida o fallecido.' }),
+    error: 'El egreso debe ser alta, remitida o fallecido.',
   }),
   epicrisis: texto(5, 8000, 'La epicrisis'),
 });
@@ -1702,7 +1728,7 @@ const tiposTicket = ['peticion', 'queja', 'reclamo', 'sugerencia', 'felicitacion
 
 const crearTicket = z.object({
   tipo: z.enum(tiposTicket, {
-    errorMap: () => ({ message: `El tipo debe ser uno de: ${tiposTicket.join(', ')}.` }),
+    error: `El tipo debe ser uno de: ${tiposTicket.join(', ')}.`,
   }),
   canal: z.enum(['portal', 'telefono', 'presencial', 'email', 'whatsapp']).optional().default('portal'),
   asunto: texto(3, 150, 'El asunto'),

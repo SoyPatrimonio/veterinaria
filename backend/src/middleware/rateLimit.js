@@ -1,6 +1,7 @@
 'use strict';
 
 const rateLimit = require('express-rate-limit');
+const { AlmacenCompartido } = require('../services/limiteCompartido');
 
 const mensaje = (texto) => ({ ok: false, error: texto });
 
@@ -15,6 +16,7 @@ const limiteGeneral = rateLimit({
 
 /** Límite estricto para login/registro: frena la fuerza bruta. */
 const limiteAuth = rateLimit({
+  store: new AlmacenCompartido('auth'),
   windowMs: 15 * 60 * 1000,
   limit: 10,
   standardHeaders: 'draft-7',
@@ -25,6 +27,7 @@ const limiteAuth = rateLimit({
 
 /** Límite para crear citas: evita que un cliente sature la agenda. */
 const limiteCitas = rateLimit({
+  store: new AlmacenCompartido('citas'),
   windowMs: 60 * 60 * 1000,
   limit: 20,
   standardHeaders: 'draft-7',
@@ -41,6 +44,7 @@ const limiteCitas = rateLimit({
  * avisa de verdad manda un mensaje, no veinte.
  */
 const limitePublico = rateLimit({
+  store: new AlmacenCompartido('publico'),
   windowMs: 60 * 60 * 1000,
   limit: 15,
   standardHeaders: 'draft-7',
@@ -56,6 +60,7 @@ const limitePublico = rateLimit({
  * límite frena y el registro cuenta lo que pasó.
  */
 const limiteExportacion = rateLimit({
+  store: new AlmacenCompartido('exportacion'),
   windowMs: 60 * 60 * 1000,
   limit: 60,
   standardHeaders: 'draft-7',
@@ -65,6 +70,7 @@ const limiteExportacion = rateLimit({
 
 /** Límite para subir archivos: cada uno cuesta memoria y espacio en Storage. */
 const limiteSubida = rateLimit({
+  store: new AlmacenCompartido('subida'),
   windowMs: 60 * 60 * 1000,
   limit: 40,
   standardHeaders: 'draft-7',
@@ -73,14 +79,20 @@ const limiteSubida = rateLimit({
 });
 
 /*
- * Aviso sobre el alcance real de todo lo de arriba: express-rate-limit cuenta
- * en la memoria del proceso, y en Vercel cada instancia de la función tiene la
- * suya. Con varias instancias despiertas el tope efectivo es un múltiplo del
- * escrito aquí, y al enfriarse la función vuelve a cero. Sirve como primera
- * barrera y contra el abuso torpe; lo que sí cuenta bien es el bloqueo por
- * intentos de `intentos_login` y el tope de recuperaciones, que viven en la
- * base. Para un límite distribuido de verdad hace falta un almacén compartido
- * (Redis) o las reglas de tasa del borde de Vercel.
+ * Dónde se cuenta.
+ *
+ * express-rate-limit cuenta por defecto en la memoria del proceso, y en Vercel
+ * cada instancia de la función tiene la suya: con varias despiertas, el tope
+ * real es un múltiplo del escrito, y al enfriarse vuelve a cero.
+ *
+ * Por eso los límites que protegen algo (ingreso, formularios públicos,
+ * citas, descargas y subidas) cuentan en la base, en seguridad.limites_tasa,
+ * que comparten todas las instancias. Ver services/limiteCompartido.js.
+ *
+ * El general se queda en memoria a propósito: corre en TODAS las peticiones
+ * de la API, y sumarle un viaje a la base a cada una costaría más de lo que
+ * protege un tope tan holgado. Contra inundaciones de verdad están las reglas
+ * de tasa del firewall de Vercel, que actúan antes de la función.
  */
 
 module.exports = {
